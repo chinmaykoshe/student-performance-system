@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth, api } from '../context/AuthContext';
 import Header from '../components/Header';
 import GlassCard from '../components/GlassCard';
@@ -68,7 +68,7 @@ const StudentDashboard = () => {
     fetchStudentProfile();
   }, [profile]);
 
-  const handleAddMilestone = async () => {
+  const handleAddMilestone = useCallback(async () => {
     if (!newMilestone.trim() || !studentData) return;
     try {
       setAddingMilestone(true);
@@ -82,9 +82,9 @@ const StudentDashboard = () => {
     } finally {
       setAddingMilestone(false);
     }
-  };
+  }, [newMilestone, studentData]);
 
-  const handleToggleMilestone = async (milestoneId) => {
+  const handleToggleMilestone = useCallback(async (milestoneId) => {
     if (!studentData) return;
     try {
       const res = await api.patch(`/students/${studentData._id}/milestones/${milestoneId}`);
@@ -92,9 +92,9 @@ const StudentDashboard = () => {
     } catch (err) {
       console.error('Toggle milestone failed:', err.message);
     }
-  };
+  }, [studentData]);
 
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = useCallback(async () => {
     if (!studentData) return;
     try {
       // Fetch as blob
@@ -110,7 +110,7 @@ const StudentDashboard = () => {
     } catch (err) {
       alert('Error downloading report card: ' + err.message);
     }
-  };
+  }, [studentData]);
 
   if (loading) {
     return (
@@ -133,7 +133,7 @@ const StudentDashboard = () => {
   }
 
   // Chart Configuration (Radar Chart of academic dimensions)
-  const chartData = {
+  const chartData = useMemo(() => ({
     labels: ['Attendance', 'Assignment Marks', 'Internal Marks', 'CGPA (scaled)', 'Study Hours (scaled)'],
     datasets: [
       {
@@ -154,9 +154,9 @@ const StudentDashboard = () => {
         pointHoverBorderColor: 'rgba(14, 165, 233, 1)',
       }
     ]
-  };
+  }), [studentData]);
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     scales: {
       r: {
         angleLines: {
@@ -186,19 +186,23 @@ const StudentDashboard = () => {
         display: false
       }
     }
-  };
+  }), []);
 
   const isPassing = studentData.prediction?.result === 'Pass';
 
   // Gamification Badges (Quick Win #7)
-  const badges = [];
-  if (studentData.attendancePercentage >= 90) badges.push({ icon: Star, label: 'Perfect Attendance', color: 'text-amber-500 bg-amber-500/10' });
-  else if (studentData.attendancePercentage >= 75) badges.push({ icon: CheckCircle, label: 'Good Attendance', color: 'text-emerald-500 bg-emerald-500/10' });
-  if (studentData.internalMarks >= 80) badges.push({ icon: Trophy, label: 'High Achiever', color: 'text-violet-500 bg-violet-500/10' });
-  if (studentData.studyHours >= 6) badges.push({ icon: Zap, label: 'Dedicated Learner', color: 'text-cyan-500 bg-cyan-500/10' });
-  if (studentData.backlogs === 0) badges.push({ icon: Award, label: 'Backlog Free', color: 'text-brand-500 bg-brand-500/10' });
-  if (milestones.filter(m => m.completed).length >= 3) badges.push({ icon: Target, label: 'Milestone Achiever', color: 'text-rose-500 bg-rose-500/10' });
-  if (studentData.previousCGPA >= 8.5) badges.push({ icon: Star, label: "Dean's List", color: 'text-yellow-500 bg-yellow-500/10' });
+  const badges = useMemo(() => {
+    const arr = [];
+    if (!studentData) return arr;
+    if (studentData.attendancePercentage >= 90) arr.push({ icon: Star, label: 'Perfect Attendance', color: 'text-amber-500 bg-amber-500/10' });
+    else if (studentData.attendancePercentage >= 75) arr.push({ icon: CheckCircle, label: 'Good Attendance', color: 'text-emerald-500 bg-emerald-500/10' });
+    if (studentData.internalMarks >= 80) arr.push({ icon: Trophy, label: 'High Achiever', color: 'text-violet-500 bg-violet-500/10' });
+    if (studentData.studyHours >= 6) arr.push({ icon: Zap, label: 'Dedicated Learner', color: 'text-cyan-500 bg-cyan-500/10' });
+    if (studentData.backlogs === 0) arr.push({ icon: Award, label: 'Backlog Free', color: 'text-brand-500 bg-brand-500/10' });
+    if (milestones.filter(m => m.completed).length >= 3) arr.push({ icon: Target, label: 'Milestone Achiever', color: 'text-rose-500 bg-rose-500/10' });
+    if (studentData.previousCGPA >= 8.5) arr.push({ icon: Star, label: "Dean's List", color: 'text-yellow-500 bg-yellow-500/10' });
+    return arr;
+  }, [studentData, milestones]);
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">

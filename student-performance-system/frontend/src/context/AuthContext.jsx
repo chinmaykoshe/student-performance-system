@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import axios from 'axios';
 
 const AuthContext = createContext(null);
@@ -7,6 +7,39 @@ const AuthContext = createContext(null);
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 });
+
+// GLOBAL CACHING LAYER to prevent continuous re-rendering and persist data globally
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+
+const originalGet = api.get;
+api.get = async (url, config = {}) => {
+  // Use cached data if available and valid
+  if (!config.forceRefresh && apiCache.has(url)) {
+    const cached = apiCache.get(url);
+    if (Date.now() - cached.timestamp < CACHE_DURATION) {
+      return { data: cached.data, status: 200, statusText: 'OK', headers: {}, config };
+    }
+  }
+  
+  const response = await originalGet.call(api, url, config);
+  // Persist response to cache
+  apiCache.set(url, { data: response.data, timestamp: Date.now() });
+  return response;
+};
+
+// Clear cache automatically on any DB modification
+const clearCache = () => apiCache.clear();
+
+const originalPost = api.post;
+api.post = async (url, data, config) => { clearCache(); return originalPost.call(api, url, data, config); };
+
+const originalPut = api.put;
+api.put = async (url, data, config) => { clearCache(); return originalPut.call(api, url, data, config); };
+
+const originalDelete = api.delete;
+api.delete = async (url, config) => { clearCache(); return originalDelete.call(api, url, config); };
+
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -59,7 +92,7 @@ export const AuthProvider = ({ children }) => {
     fetchMe();
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     try {
       const res = await api.post('/auth/login', { email, password });
       if (res.data && res.data.success) {
@@ -75,21 +108,25 @@ export const AuthProvider = ({ children }) => {
       const errorMsg = err.response?.data?.error || 'Server error occurred during login';
       return { success: false, error: errorMsg };
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
     setProfile(null);
-  };
+  }, []);
 
-  const updateProfileLocally = (updatedProfile) => {
+  const updateProfileLocally = useCallback((updatedProfile) => {
     setProfile(updatedProfile);
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    user, token, profile, loading, login, logout, updateProfileLocally
+  }), [user, token, profile, loading, login, logout, updateProfileLocally]);
 
   return (
-    <AuthContext.Provider value={{ user, token, profile, loading, login, logout, updateProfileLocally }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

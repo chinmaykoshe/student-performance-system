@@ -23,7 +23,7 @@ import AICopilot from './components/AICopilot';
 // Dashboard layout wrapping Sidebar and child dashboards
 const DashboardLayout = ({ children }) => {
   return (
-    <div className="flex h-screen w-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors overflow-hidden">
+    <div className="flex h-screen w-screen bg-slate-50 text-slate-900 overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         {children}

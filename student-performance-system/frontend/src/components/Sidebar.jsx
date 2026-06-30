@@ -1,133 +1,95 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
-  GraduationCap, 
-  LayoutDashboard, 
+  Home, 
+  BarChart2, 
+  Briefcase, 
+  CheckSquare, 
+  Calendar, 
+  MessageSquare, 
   Users, 
-  UserCheck, 
-  ClipboardList, 
-  LogOut,
-  TrendingUp,
   Settings,
-  FileClock,
-  BarChart3,
-  Award,
-  BrainCircuit,
-  FileText
+  LogOut,
+  GraduationCap
 } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = memo(() => {
   const { user, logout } = useAuth();
 
-  const getSections = () => {
-    if (!user) return [];
+  const getAdminLinks = () => [
+    { to: '/admin', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
+    { to: '/admin/analytics', label: 'Analytics', icon: <BarChart2 size={18} strokeWidth={2} /> },
+    { to: '/admin/faculty', label: 'Projects', icon: <Briefcase size={18} strokeWidth={2} /> },
+    { to: '#tasks', label: 'Tasks', icon: <CheckSquare size={18} strokeWidth={2} /> },
+    { to: '#calendar', label: 'Calendar', icon: <Calendar size={18} strokeWidth={2} /> },
+    { to: '/admin/logs', label: 'Messages', icon: <MessageSquare size={18} strokeWidth={2} /> },
+    { to: '/admin/students', label: 'Team', icon: <Users size={18} strokeWidth={2} /> },
+    { to: '/admin/settings', label: 'Settings', icon: <Settings size={18} strokeWidth={2} /> }
+  ];
 
-    switch (user.role) {
-      case 'admin':
-        return [
-          {
-            title: 'MAIN MENU',
-            links: [
-              { to: '/admin', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-              { to: '/admin/analytics', label: 'Analytics Insights', icon: <BarChart3 size={18} /> },
-              { to: '/admin/students', label: 'Manage Students', icon: <Users size={18} /> },
-              { to: '/admin/faculty', label: 'Manage Faculty', icon: <UserCheck size={18} /> }
-            ]
-          },
-          {
-            title: 'SYSTEM CONTROLS',
-            links: [
-              { to: '/admin/logs', label: 'Audit Activity Logs', icon: <FileClock size={18} /> },
-              { to: '/admin/settings', label: 'System Settings', icon: <Settings size={18} /> }
-            ]
-          }
-        ];
-      case 'faculty':
-        return [
-          {
-            title: 'FACULTY MENU',
-            links: [
-              { to: '/faculty', label: 'My Students', icon: <ClipboardList size={18} /> }
-            ]
-          }
-        ];
-      case 'student':
-        return [
-          {
-            title: 'STUDENT MENU',
-            links: [
-              { to: '/student', label: 'My Performance', icon: <TrendingUp size={18} /> },
-              { to: '/student/assessment', label: 'Skill Assessments', icon: <Award size={18} /> },
-              { to: '/student/ai-coach', label: 'AI Career Coach', icon: <BrainCircuit size={18} /> },
-              { to: '/student/resume-builder', label: 'ATS Resume Builder', icon: <FileText size={18} /> }
-            ]
-          }
-        ];
-      default:
-        return [];
-    }
-  };
+  // Faculty and Student fallbacks to keep logic intact but UI updated
+  const getFacultyLinks = () => [
+    { to: '/faculty', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> }
+  ];
 
-  const sections = getSections();
+  const getStudentLinks = () => [
+    { to: '/student', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
+    { to: '/student/assessment', label: 'Tasks', icon: <CheckSquare size={18} strokeWidth={2} /> },
+    { to: '/student/ai-coach', label: 'Messages', icon: <MessageSquare size={18} strokeWidth={2} /> }
+  ];
+
+  const links = user?.role === 'admin' ? getAdminLinks() : user?.role === 'faculty' ? getFacultyLinks() : getStudentLinks();
 
   return (
-    <aside className="glass-panel w-64 h-screen flex flex-col justify-between border-y-0 border-l-0 shrink-0">
-      <div className="flex flex-col overflow-y-auto">
+    <aside className="w-64 h-screen bg-slate-50 flex flex-col justify-between border-r border-slate-100 shrink-0">
+      <div className="flex flex-col">
         {/* Brand Logo Header */}
-        <div className="flex h-20 items-center justify-start px-6 space-x-3 border-b border-slate-200/50 dark:border-slate-800/50 shrink-0">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white shadow-md shadow-brand-500/20">
-            <GraduationCap size={22} />
+        <div className="flex h-20 items-center justify-start px-6 space-x-3 shrink-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white">
+            <span className="font-bold text-lg font-sans">A.</span>
           </div>
           <div>
-            <span className="text-lg font-bold text-slate-800 dark:text-white leading-none block">PredictEdu</span>
-            <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Analytics Portal</span>
+            <span className="text-sm font-semibold text-slate-900 leading-none block">PredictEdu</span>
           </div>
         </div>
 
-        {/* Sectional Menu Navigation */}
-        <div className="mt-6 px-4 space-y-6">
-          {sections.map((section, idx) => (
-            <div key={idx} className="space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-4 block">
-                {section.title}
-              </span>
-              <nav className="space-y-1">
-                {section.links.map((link) => (
-                  <NavLink
-                    key={link.to}
-                    to={link.to}
-                    end
-                    className={({ isActive }) =>
-                      `flex items-center space-x-3 py-2.5 text-xs font-semibold transition-all duration-200 ${
-                        isActive
-                          ? 'bg-stone-100/80 dark:bg-stone-800/60 text-stone-900 dark:text-stone-100 border-l-2 border-stone-800 dark:border-stone-400 pl-3.5 font-bold'
-                          : 'text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-900/30 hover:text-stone-850 dark:hover:text-stone-100 pl-4'
-                      }`
-                    }
-                  >
-                    {link.icon}
-                    <span>{link.label}</span>
-                  </NavLink>
-                ))}
-              </nav>
-            </div>
+        {/* Minimal Navigation */}
+        <div className="mt-4 px-4 space-y-1">
+          {links.map((link) => (
+            <NavLink
+              key={link.label}
+              to={link.to}
+              end
+              className={({ isActive }) =>
+                `flex items-center space-x-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? 'bg-brand-100 text-slate-900 font-semibold'
+                    : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                }`
+              }
+            >
+              <div className="opacity-80">{link.icon}</div>
+              <span>{link.label}</span>
+            </NavLink>
           ))}
         </div>
       </div>
 
-      {/* Footer / User quick action */}
-      <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/50 shrink-0">
+      {/* Footer Minimal Logout */}
+      <div className="p-4 shrink-0 mb-4">
         <button
           onClick={logout}
-          className="flex w-full items-center space-x-3 px-4 py-2.5 rounded-xl font-medium text-xs text-rose-500 hover:bg-rose-500/10 transition-all duration-200"
+          className="flex w-full items-center space-x-3 px-4 py-2.5 rounded-full text-sm font-medium text-slate-500 hover:bg-white hover:text-slate-900 transition-all duration-200"
         >
-          <LogOut size={18} />
+          <div className="opacity-80"><LogOut size={18} strokeWidth={2} /></div>
           <span>Log Out</span>
         </button>
       </div>
     </aside>
   );
 };
+
+});
 
 export default Sidebar;

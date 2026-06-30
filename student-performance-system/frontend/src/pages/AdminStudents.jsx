@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import useDebounce from '../hooks/useDebounce';
 import { api } from '../context/AuthContext';
 import Header from '../components/Header';
 import GlassCard from '../components/GlassCard';
@@ -23,6 +24,7 @@ const AdminStudents = () => {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -44,12 +46,12 @@ const AdminStudents = () => {
 
   const [saving, setSaving] = useState(false);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/students', {
         params: {
-          search,
+          search: debouncedSearch,
           page,
           limit: 8
         }
@@ -63,13 +65,13 @@ const AdminStudents = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearch, page]);
 
   useEffect(() => {
     fetchStudents();
-  }, [page, search]);
+  }, [fetchStudents]);
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = useCallback(() => {
     setEditingStudent(null);
     setFormData({
       rollNumber: '',
@@ -85,9 +87,9 @@ const AdminStudents = () => {
       backlogs: 0
     });
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleOpenEditModal = (student) => {
+  const handleOpenEditModal = useCallback((student) => {
     setEditingStudent(student);
     setFormData({
       rollNumber: student.rollNumber,
@@ -103,9 +105,9 @@ const AdminStudents = () => {
       backlogs: student.backlogs
     });
     setModalOpen(true);
-  };
+  }, []);
 
-  const handleFormChange = (e) => {
+  const handleFormChange = useCallback((e) => {
     const { name, value } = e.target;
     const numericFields = [
       'semester', 
@@ -121,9 +123,9 @@ const AdminStudents = () => {
       ...prev,
       [name]: numericFields.includes(name) ? parseFloat(value) || 0 : value
     }));
-  };
+  }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     try {
       setSaving(true);
@@ -147,9 +149,9 @@ const AdminStudents = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [editingStudent, formData, fetchStudents]);
 
-  const handleDeleteStudent = async (id) => {
+  const handleDeleteStudent = useCallback(async (id) => {
     if (!window.confirm('Are you sure you want to delete this student and their user credentials?')) return;
     try {
       await api.delete(`/students/${id}`);
@@ -157,9 +159,9 @@ const AdminStudents = () => {
     } catch (err) {
       alert('Delete failed.');
     }
-  };
+  }, [fetchStudents]);
 
-  const handleManualPredict = async (id) => {
+  const handleManualPredict = useCallback(async (id) => {
     try {
       const res = await api.post(`/students/${id}/predict`);
       if (res.data && res.data.success) {
@@ -169,9 +171,9 @@ const AdminStudents = () => {
     } catch (error) {
       alert('Prediction recalculation failed.');
     }
-  };
+  }, [fetchStudents]);
 
-  const handleFlagStudent = async (id, currentFlagged) => {
+  const handleFlagStudent = useCallback(async (id, currentFlagged) => {
     try {
       const reason = !currentFlagged ? (window.prompt('Optional: Enter a reason for flagging this student:') || '') : '';
       await api.patch(`/students/${id}/flag`, { flagReason: reason });
@@ -179,7 +181,15 @@ const AdminStudents = () => {
     } catch (err) {
       alert('Flag action failed.');
     }
-  };
+  }, [fetchStudents]);
+
+  // Generate dynamic initials for the profile circle
+  const getInitials = useCallback((n) => {
+    if (!n) return 'ST';
+    const parts = n.split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return n.slice(0, 2).toUpperCase();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
@@ -243,14 +253,6 @@ const AdminStudents = () => {
                   <tbody className="divide-y divide-slate-200/50 dark:divide-slate-800/50 text-slate-700 dark:text-slate-300 text-sm">
                     {students.map((student) => {
                       const isPassing = student.prediction?.result === 'Pass';
-                      
-                      // Generate dynamic initials for the profile circle
-                      const getInitials = (n) => {
-                        if (!n) return 'ST';
-                        const parts = n.split(' ');
-                        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-                        return n.slice(0, 2).toUpperCase();
-                      };
 
                       return (
                         <tr key={student._id} className="hover:bg-slate-100/30 dark:hover:bg-slate-800/15 transition-all duration-150">

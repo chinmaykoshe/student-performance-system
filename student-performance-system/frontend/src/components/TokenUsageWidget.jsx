@@ -40,11 +40,8 @@ const TokenUsageWidget = ({ liveUsage }) => {
     }
   }, [liveUsage]);
 
-  // Initial fetch + polling every 20 s
   useEffect(() => {
     fetchUsage();
-    const timer = setInterval(fetchUsage, 20_000);
-    return () => clearInterval(timer);
   }, [fetchUsage]);
 
   if (loading) {

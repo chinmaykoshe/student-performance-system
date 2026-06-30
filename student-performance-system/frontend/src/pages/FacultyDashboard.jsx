@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import useDebounce from '../hooks/useDebounce';
 import { useAuth, api } from '../context/AuthContext';
 import Header from '../components/Header';
 import GlassCard from '../components/GlassCard';
@@ -33,6 +34,7 @@ const FacultyDashboard = () => {
 
   // Search & Filter state
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [semesterFilter, setSemesterFilter] = useState('');
   const [resultFilter, setResultFilter] = useState('');
   const [page, setPage] = useState(1);
@@ -50,12 +52,12 @@ const FacultyDashboard = () => {
   });
   const [saveLoading, setSaveLoading] = useState(false);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get('/students', {
         params: {
-          search,
+          search: debouncedSearch,
           semester: semesterFilter || undefined,
           'prediction.result': resultFilter || undefined,
           page,
@@ -72,9 +74,9 @@ const FacultyDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [debouncedSearch, semesterFilter, resultFilter, page]);
 
-  const fetchAssessments = async () => {
+  const fetchAssessments = useCallback(async () => {
     try {
       setAssessmentsLoading(true);
       const res = await api.get('/assessments/all');
@@ -86,7 +88,7 @@ const FacultyDashboard = () => {
     } finally {
       setAssessmentsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (dashboardView === 'records') {
@@ -94,9 +96,9 @@ const FacultyDashboard = () => {
     } else {
       fetchAssessments();
     }
-  }, [search, semesterFilter, resultFilter, page, dashboardView]);
+  }, [fetchStudents, fetchAssessments, dashboardView]);
 
-  const handleEditClick = (student) => {
+  const handleEditClick = useCallback((student) => {
     setSelectedStudent(student);
     setEditForm({
       attendancePercentage: student.attendancePercentage,
@@ -106,21 +108,21 @@ const FacultyDashboard = () => {
       studyHours: student.studyHours,
       backlogs: student.backlogs
     });
-  };
+  }, []);
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setSelectedStudent(null);
-  };
+  }, []);
 
-  const handleFormChange = (e) => {
+  const handleFormChange = useCallback((e) => {
     const { name, value } = e.target;
     setEditForm(prev => ({
       ...prev,
       [name]: parseFloat(value) || 0
     }));
-  };
+  }, []);
 
-  const handleSaveForm = async (e) => {
+  const handleSaveForm = useCallback(async (e) => {
     e.preventDefault();
     if (!selectedStudent) return;
     
@@ -137,7 +139,7 @@ const FacultyDashboard = () => {
     } finally {
       setSaveLoading(false);
     }
-  };
+  }, [selectedStudent, editForm, handleCloseModal]);
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
