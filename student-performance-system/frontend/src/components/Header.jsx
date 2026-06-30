@@ -51,8 +51,6 @@ const Header = memo(({ title }) => {
       </div>
     </header>
   );
-};
-
 });
 
 export default Header;

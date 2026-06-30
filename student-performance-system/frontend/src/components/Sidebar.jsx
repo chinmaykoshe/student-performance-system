@@ -88,8 +88,6 @@ const Sidebar = memo(() => {
       </div>
     </aside>
   );
-};
-
 });
 
 export default Sidebar;

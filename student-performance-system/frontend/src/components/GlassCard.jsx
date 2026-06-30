@@ -9,8 +9,6 @@ const GlassCard = memo(({ children, className = '', onClick }) => {
       {children}
     </div>
   );
-};
-
 });
 
 export default GlassCard;
