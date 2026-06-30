@@ -63,7 +63,7 @@ const ForgotPasswordView = ({ onBack }) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="glass-input w-full pl-11 pr-4 py-3 rounded-2xl text-sm"
+                  className="glass-input w-full pl-11 py-3"
                   placeholder="name@university.edu"
                   required
                 />
@@ -72,7 +72,7 @@ const ForgotPasswordView = ({ onBack }) => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 mt-2 rounded-2xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50"
+              className="w-full py-3.5 mt-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50"
             >
               {submitting ? 'Sending...' : 'Send Reset Link'}
             </button>
@@ -150,7 +150,7 @@ const ResetPasswordView = ({ token }) => {
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="glass-input w-full pl-11 pr-4 py-3 rounded-2xl text-sm"
+                  className="glass-input w-full pl-11 py-3"
                   placeholder="Min. 6 characters"
                   required
                 />
@@ -164,7 +164,7 @@ const ResetPasswordView = ({ token }) => {
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
-                  className="glass-input w-full pl-11 pr-4 py-3 rounded-2xl text-sm"
+                  className="glass-input w-full pl-11 py-3"
                   placeholder="Repeat new password"
                   required
                 />
@@ -173,7 +173,7 @@ const ResetPasswordView = ({ token }) => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 mt-2 rounded-2xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50"
+              className="w-full py-3.5 mt-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 transition-all disabled:opacity-50"
             >
               {submitting ? 'Resetting…' : 'Reset Password'}
             </button>

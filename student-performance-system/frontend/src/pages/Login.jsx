@@ -89,7 +89,7 @@ const Login = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="glass-input w-full pl-11 pr-4 py-3 rounded-2xl text-sm"
+                  className="glass-input w-full pl-11 py-3"
                   placeholder="name@university.edu"
                   required
                 />
@@ -108,7 +108,7 @@ const Login = () => {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="glass-input w-full pl-11 pr-4 py-3 rounded-2xl text-sm"
+                  className="glass-input w-full pl-11 py-3"
                   placeholder="••••••••"
                   required
                 />
@@ -118,7 +118,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 mt-2 rounded-2xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+              className="w-full py-3.5 mt-2 rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-500/25 transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
             >
               {submitting ? 'Authenticating...' : 'Sign In'}
             </button>
@@ -133,7 +133,7 @@ const Login = () => {
 
           <a
             href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/api/auth/google`}
-            className="w-full flex items-center justify-center space-x-3 py-3.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-750 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="w-full flex items-center justify-center space-x-3 py-3.5 rounded-xl border border-slate-200/50 dark:border-slate-700/50 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-50 dark:hover:bg-slate-750 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
