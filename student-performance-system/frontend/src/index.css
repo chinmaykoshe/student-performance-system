@@ -4,52 +4,85 @@
 
 @theme {
   --font-sans: "Outfit", "Inter", sans-serif;
-  --color-brand-50: #f0fdf4; /* Fresh subtle green */
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
   
-  /* Primary Slate Blue (TeamHub Inspired) */
-  --color-brand-500: #0284c7; /* Sky 600 */
-  --color-brand-600: #0369a1; /* Sky 700 */
-  --color-brand-700: #075985; /* Sky 800 */
+  /* Premium Minimalist Warm Cream & Charcoal Palette (Exact Match) */
+  --color-brand-50: #fbfbf9;   /* Softest cream */
+  --color-brand-100: #f5f3ef;  /* Active link soft background */
+  --color-brand-200: #eae6df;
   
-  /* Slate & Neutral Grays */
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-800: #1e293b;
-  --color-slate-850: #131c2e;
-  --color-slate-900: #0f172a;
+  /* Primary Accent: Warm Gold / Tan */
+  --color-brand-500: #a78bfa;  /* Default color mapped to a refined tan-gold */
+  
+  /* Layout Colors */
+  --color-slate-50: #f7f5f2;   /* Pure warm cream background */
+  --color-slate-100: #f1ede9;  /* Thin warm borders */
+  --color-slate-200: #e7e0d8;
+  --color-slate-800: #44403c;  /* Stone 700 text */
+  --color-slate-850: #292524;  /* Stone 800 dark-mode card */
+  --color-slate-900: #1c1917;  /* Stone 900 dark-mode bg */
+}
+
+/* Custom Overrides for Color Theme Mapping */
+:root {
+  --accent-gold: #b59e7a;
+  --accent-gold-hover: #9e855f;
+  --charcoal: #1c1917;
+  --neutral-bg: #f7f5f2;
 }
 
 body {
-  @apply font-sans transition-colors duration-300 antialiased overflow-x-hidden bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200;
+  @apply font-sans transition-colors duration-300 antialiased overflow-x-hidden bg-slate-50 text-stone-800 dark:bg-stone-950 dark:text-stone-100;
 }
 
-/* Premium Solid Dashboard Cards (TeamHub Inspired) */
+/* Override Lucide Icon Color Defaults to Refined Tan/Gold */
+.text-brand-500, .text-brand-600 {
+  color: var(--accent-gold) !important;
+}
+
+.bg-brand-500 {
+  background-color: var(--charcoal) !important;
+  color: #ffffff !important;
+}
+
+/* Clean Minimalist Cards */
 .glass-panel {
-  @apply bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-850 shadow-sm transition-all duration-300;
+  @apply bg-white dark:bg-stone-900 border border-slate-100 dark:border-stone-850 shadow-sm transition-all duration-300;
 }
 
 .glass-card {
-  @apply bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-850 shadow-sm rounded-2xl p-6 transition-all duration-300;
+  @apply bg-white dark:bg-stone-900 border border-slate-100 dark:border-stone-850 shadow-sm rounded-3xl p-6 transition-all duration-300;
 }
 
 .glass-input {
-  @apply bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:outline-none transition-all duration-200;
+  @apply bg-stone-50 dark:bg-stone-850 border border-stone-200 dark:border-stone-800 text-stone-850 dark:text-stone-100 rounded-2xl px-4 py-3 text-xs font-semibold focus:ring-2 focus:ring-brand-500/10 focus:border-stone-400 focus:outline-none transition-all duration-200;
 }
 
-/* Sidebar Specific Utilities */
+/* Sidebar Styling matching image exactly */
 .sidebar-item {
   @apply flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200;
 }
 
 .sidebar-item-active {
-  @apply bg-brand-500 text-white shadow-md shadow-brand-500/10 hover:bg-brand-600;
+  background-color: var(--charcoal) !important;
+  color: #ffffff !important;
+  @apply shadow-md shadow-stone-900/10 scale-[1.02];
+}
+
+/* NavLink exact class injection */
+nav a.active {
+  background-color: #f5f3ef !important;
+  color: #1c1917 !important;
+  @apply border-l-2 border-stone-800 font-bold rounded-none;
+}
+
+.dark nav a.active {
+  background-color: #292524 !important;
+  color: #f5f3ef !important;
+  @apply border-l-2 border-stone-300 font-bold rounded-none;
 }
 
 .sidebar-item-inactive {
-  @apply text-slate-500 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-900/60 hover:text-slate-800 dark:hover:text-slate-200;
+  @apply text-stone-500 dark:text-stone-400 hover:bg-stone-100/60 dark:hover:bg-stone-900/60 hover:text-stone-800 dark:hover:text-stone-200;
 }
 
 /* Scrollbars */
@@ -63,15 +96,5 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors;
-}
-
-/* Micro-Animations & Glows */
-@keyframes softPulse {
-  0%, 100% { opacity: 0.15; transform: scale(1); }
-  50% { opacity: 0.25; transform: scale(1.05); }
-}
-
-.bg-glow-orb {
-  animation: softPulse 8s infinite alternate ease-in-out;
+  @apply bg-stone-200 dark:bg-stone-800 rounded-full hover:bg-stone-300 dark:hover:bg-stone-700 transition-colors;
 }

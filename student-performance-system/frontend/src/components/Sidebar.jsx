@@ -99,10 +99,10 @@ const Sidebar = () => {
                     to={link.to}
                     end
                     className={({ isActive }) =>
-                      `flex items-center space-x-3 px-4 py-2.5 rounded-xl font-medium text-xs transition-all duration-250 ${
+                      `flex items-center space-x-3 py-2.5 text-xs font-semibold transition-all duration-200 ${
                         isActive
-                          ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20 scale-[1.02]'
-                          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/40 dark:hover:bg-slate-800/40 hover:text-slate-850 dark:hover:text-slate-100'
+                          ? 'bg-stone-100/80 dark:bg-stone-800/60 text-stone-900 dark:text-stone-100 border-l-2 border-stone-800 dark:border-stone-400 pl-3.5 font-bold'
+                          : 'text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-900/30 hover:text-stone-850 dark:hover:text-stone-100 pl-4'
                       }`
                     }
                   >
