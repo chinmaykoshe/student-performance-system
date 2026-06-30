@@ -142,7 +142,7 @@ async function seedDatabase() {
       const facultyUser = await User.create({
         name: 'Dr. Sarah Connor',
         email: 'faculty@system.com',
-        password: 'Faculty@123',
+        password: 'faculty@system.com@123',
         role: 'faculty'
       });
 
@@ -153,7 +153,7 @@ async function seedDatabase() {
         department: 'Computer Applications (MCA)'
       });
       if (process.env.NODE_ENV !== 'production') {
-        console.log('Seeded default Faculty user: faculty@system.com / Faculty@123');
+        console.log('Seeded default Faculty user: faculty@system.com / faculty@system.com@123');
       } else {
         console.log('Seeded default Faculty user account.');
       }

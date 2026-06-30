@@ -164,7 +164,7 @@ exports.createStudent = async (req, res) => {
     user = await User.create({
       name,
       email,
-      password: rollNumber.toLowerCase(), // Default password is roll number (lowercase)
+      password: `${email.toLowerCase()}@123`, // Default password is email@123 (lowercase)
       role: 'student'
     });
 
@@ -413,7 +413,7 @@ exports.importStudents = async (req, res) => {
             user = await User.create({
               name,
               email,
-              password: rollNumber.toLowerCase(),
+              password: `${email.toLowerCase()}@123`, // Default password is email@123 (lowercase)
               role: 'student'
             });
           }

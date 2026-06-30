@@ -4,67 +4,55 @@
 
 @theme {
   --font-sans: "Outfit", "Inter", sans-serif;
-  --color-brand-50: #f0f9ff;
-  --color-brand-100: #e0f2fe;
-  --color-brand-200: #bae6fd;
-  --color-brand-300: #7dd3fc;
-  --color-brand-400: #38bdf8;
-  --color-brand-500: #0ea5e9;
-  --color-brand-600: #0284c7;
-  --color-brand-700: #0369a1;
-  --color-brand-800: #075985;
-  --color-brand-900: #0c4a6e;
-  --color-brand-950: #082f49;
+  --color-brand-50: #f0fdf4; /* Fresh subtle green */
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  
+  /* Primary Slate Blue (TeamHub Inspired) */
+  --color-brand-500: #0284c7; /* Sky 600 */
+  --color-brand-600: #0369a1; /* Sky 700 */
+  --color-brand-700: #075985; /* Sky 800 */
+  
+  /* Slate & Neutral Grays */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-800: #1e293b;
+  --color-slate-850: #131c2e;
+  --color-slate-900: #0f172a;
 }
 
 body {
-  @apply font-sans transition-colors duration-300 antialiased overflow-x-hidden bg-slate-50 dark:bg-slate-900;
+  @apply font-sans transition-colors duration-300 antialiased overflow-x-hidden bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200;
 }
 
-/* Glassmorphism Design System Utility Classes */
+/* Premium Solid Dashboard Cards (TeamHub Inspired) */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(16px) saturate(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-.dark .glass-panel {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(16px) saturate(120%);
-  -webkit-backdrop-filter: blur(16px) saturate(120%);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  @apply bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-850 shadow-sm transition-all duration-300;
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
-}
-
-.dark .glass-card {
-  background: rgba(30, 41, 59, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  @apply bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-850 shadow-sm rounded-2xl p-6 transition-all duration-300;
 }
 
 .glass-input {
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(209, 213, 219, 0.5);
-  @apply focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition-all duration-200;
+  @apply bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 rounded-xl px-4 py-2.5 text-xs font-semibold focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 focus:outline-none transition-all duration-200;
 }
 
-.dark .glass-input {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(75, 85, 99, 0.4);
-  @apply focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none transition-all duration-200 text-white;
+/* Sidebar Specific Utilities */
+.sidebar-item {
+  @apply flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200;
 }
 
-/* Custom Scrollbar for premium feel */
+.sidebar-item-active {
+  @apply bg-brand-500 text-white shadow-md shadow-brand-500/10 hover:bg-brand-600;
+}
+
+.sidebar-item-inactive {
+  @apply text-slate-500 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-900/60 hover:text-slate-800 dark:hover:text-slate-200;
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -75,26 +63,15 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-slate-400 dark:hover:bg-slate-600 transition-colors;
+  @apply bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors;
 }
 
-/* Background animation */
-@keyframes pulseGlow {
-  0%, 100% {
-    transform: scale(1) translate(0px, 0px);
-  }
-  33% {
-    transform: scale(1.1) translate(30px, -50px);
-  }
-  66% {
-    transform: scale(0.95) translate(-20px, 20px);
-  }
+/* Micro-Animations & Glows */
+@keyframes softPulse {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(1.05); }
 }
 
-.animate-glow-1 {
-  animation: pulseGlow 20s infinite alternate ease-in-out;
-}
-
-.animate-glow-2 {
-  animation: pulseGlow 25s infinite alternate-reverse ease-in-out;
+.bg-glow-orb {
+  animation: softPulse 8s infinite alternate ease-in-out;
 }

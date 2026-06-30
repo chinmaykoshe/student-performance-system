@@ -117,7 +117,7 @@ const AICopilot = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white shadow-xl shadow-brand-500/35 transition-all duration-300 hover:scale-110 active:scale-95 animate-bounce relative"
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white shadow-xl shadow-brand-500/35 transition-all duration-300 hover:scale-110 active:scale-95 relative"
           aria-label="Open AI Copilot"
         >
           <Sparkles size={24} />

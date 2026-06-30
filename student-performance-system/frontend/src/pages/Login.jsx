@@ -166,7 +166,7 @@ const Login = () => {
               <div className="p-2.5 rounded-2xl bg-slate-100/50 dark:bg-slate-800/30 text-left border border-slate-200/20">
                 <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300">Faculty</p>
                 <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">faculty@system.com</p>
-                <p className="text-[9px] text-slate-400 font-mono mt-0.5">Faculty@123</p>
+                <p className="text-[9px] text-slate-400 font-mono mt-0.5">faculty@system.com@123</p>
               </div>
             </div>
           </div>
