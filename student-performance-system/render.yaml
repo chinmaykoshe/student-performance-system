@@ -20,10 +20,7 @@ services:
       - key: JWT_RESET_SECRET
         sync: false
       - key: ML_API_URL
-        fromService:
-          name: predictedu-mlapi
-          type: web
-          property: hostURL
+        sync: false          # Set this to your live predictedu-mlapi Render URL after it deploys
         # Render will auto-fill this with the ML API's URL + /predict path below
         # After deploy, manually update to: https://predictedu-mlapi.onrender.com
       - key: CLIENT_URL
