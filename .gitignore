@@ -1,0 +1,35 @@
+# ── Ignore root directories ──────────────────────────────────
+# Node / npm
+**/node_modules/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Environment / secrets
+**/.env
+**/.env.*
+
+# Build outputs
+**/dist/
+**/build/
+**/.vite/
+
+# Python / virtual envs
+**/__pycache__/
+**/*.py[cod]
+**/venv/
+**/env/
+**/*.joblib
+
+# Uploads and temporary data
+student-performance-system/backend/uploads/*
+!student-performance-system/backend/uploads/.gitkeep
+student-performance-system/mongodb-data/
+
+# Logs
+**/*.log
+
+# Misc
+student-performance-system/backend/test_server_load.js
+student-performance-system/test_new_apis.ps1
+improve_doc.md

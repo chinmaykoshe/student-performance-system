@@ -1,0 +1,64 @@
+# ────────────────────────────────────────────────────────────────
+# Root .gitignore
+# ────────────────────────────────────────────────────────────────
+
+# ── Node / npm ────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# ── Environment / secrets ────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Build outputs ────────────────────────────────────────────
+dist/
+build/
+.vite/
+
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+dist/
+*.egg
+pip-log.txt
+
+# ── ML model artifacts (large binaries) ──────────────────────
+# Comment out below lines if you want to push model to GitHub
+# (files are ~435 KB so they CAN be pushed — leave them in)
+# ml-api/*.joblib
+
+# ── OS / Editor ───────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ── Uploads directory (user files, not code) ────────────────
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ── MongoDB local data ────────────────────────────────────────
+mongodb-data/
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Misc dev files ────────────────────────────────────────────
+test_server_load.js
+test_new_apis.ps1

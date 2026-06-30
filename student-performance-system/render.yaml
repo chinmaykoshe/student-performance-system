@@ -1,0 +1,67 @@
+services:
+  # ── Node.js Express Backend ─────────────────────────────────
+  - type: web
+    name: predictedu-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false          # Set this in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: JWT_RESET_SECRET
+        sync: false
+      - key: ML_API_URL
+        fromService:
+          name: predictedu-mlapi
+          type: web
+          property: hostURL
+        # Render will auto-fill this with the ML API's URL + /predict path below
+        # After deploy, manually update to: https://predictedu-mlapi.onrender.com
+      - key: CLIENT_URL
+        sync: false          # Set to your Vercel frontend URL
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TOKEN_SESSION_LIMIT
+        value: 8000
+      - key: TOKEN_DAILY_USER
+        value: 20000
+      - key: TOKEN_DAILY_APP
+        value: 80000
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_SECURE
+        value: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+
+  # ── Python Flask ML API ──────────────────────────────────────
+  - type: web
+    name: predictedu-mlapi
+    runtime: python
+    rootDir: ml-api
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2
+    envVars:
+      - key: PORT
+        value: 8000
