@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -52,6 +53,7 @@ function App() {
           {/* ── Public Routes ────────────────────────────────────────── */}
           <Route path="/home" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ResetPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/oauth-callback" element={<OAuthCallbackPage />} />

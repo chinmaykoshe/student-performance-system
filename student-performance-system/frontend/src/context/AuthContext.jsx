@@ -110,6 +110,24 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const register = useCallback(async (name, email, password, role = 'student') => {
+    try {
+      const res = await api.post('/auth/register', { name, email, password, role });
+      if (res.data && res.data.success) {
+        const { token: userToken, user: userData, profile: userProfile } = res.data;
+        localStorage.setItem('token', userToken);
+        setToken(userToken);
+        setUser(userData);
+        setProfile(userProfile);
+        return { success: true, role: userData.role };
+      }
+      return { success: false, error: 'Registration failed.' };
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || 'Server error occurred during registration';
+      return { success: false, error: errorMsg };
+    }
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
@@ -122,8 +140,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const contextValue = useMemo(() => ({
-    user, token, profile, loading, login, logout, updateProfileLocally
-  }), [user, token, profile, loading, login, logout, updateProfileLocally]);
+    user, token, profile, loading, login, logout, register, updateProfileLocally
+  }), [user, token, profile, loading, login, logout, register, updateProfileLocally]);
 
   return (
     <AuthContext.Provider value={contextValue}>

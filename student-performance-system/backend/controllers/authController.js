@@ -46,6 +46,30 @@ exports.register = async (req, res) => {
         return res.status(400).json({ success: false, error: 'Department is required for faculty' });
       }
       profile = await Faculty.create({ user: user._id, name, email, department });
+    } else if (role === 'student') {
+      profile = await Student.create({
+        name,
+        email,
+        rollNumber: 'NEW-' + Math.floor(Math.random() * 10000),
+        department: department || 'Computer Applications (MCA)',
+        semester: 1,
+        attendancePercentage: 0,
+        assignmentMarks: 0,
+        internalMarks: 0,
+        previousCGPA: 0,
+        studyHours: 0,
+        backlogs: 0
+      });
+      // Generate initial prediction
+      const { predictStudentPerformance } = require('../utils/predictionService');
+      const predictionResult = await predictStudentPerformance(profile);
+      profile.prediction = {
+        result: predictionResult.result,
+        confidence: predictionResult.confidence,
+        suggestions: predictionResult.suggestions,
+        predictedAt: new Date()
+      };
+      await profile.save();
     }
 
     sendTokenResponse(user, 201, res, profile);
