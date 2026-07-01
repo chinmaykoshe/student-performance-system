@@ -15,10 +15,12 @@ const studentRoutes = require('./routes/studentRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const systemRoutes = require('./routes/systemRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
+const assessmentTemplateRoutes = require('./routes/assessmentTemplateRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const academicRoutes = require('./routes/academicRoutes');
 
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -86,10 +88,12 @@ app.use('/api/students', studentRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/assessments', assessmentRoutes);
+app.use('/api/assessment-templates', assessmentTemplateRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/academic', academicRoutes);
 
 // Health Check Route (used by Render/uptime bots)
 app.get('/api/health', (req, res) => {
@@ -123,10 +127,20 @@ mongoose
   .connect(MONGO_URI)
   .then(async () => {
     console.log('MongoDB connected successfully.');
-    // User explicitly requested to DELETE WHOLE DATA AND INSERT NEW DATA unconditionally
-    const wipeAndSeed = require('./utils/seeder');
-    await wipeAndSeed();
-    
+
+    // Seeding strategy:
+    // - Default: DO NOT wipe existing data on every start.
+    // - Enable wipe+seed explicitly via SEED_ON_START=true
+    //   (useful for dev, but never for production).
+    const seedOnStart = (process.env.SEED_ON_START || '').toLowerCase() === 'true';
+
+    if (seedOnStart) {
+      const wipeAndSeed = require('./utils/seeder');
+      await wipeAndSeed();
+    } else {
+      console.log('Skipping wipe+seed on startup. Set SEED_ON_START=true to enable.');
+    }
+
     app.listen(PORT, () => {
       console.log(`Backend server running on port ${PORT}`);
     });
