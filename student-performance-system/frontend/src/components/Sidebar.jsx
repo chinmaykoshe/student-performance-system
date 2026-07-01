@@ -59,15 +59,19 @@ const Sidebar = memo(({ isOpen, setIsOpen }) => {
   );
 
   const getAdminLinks = () => [
-    { to: '/admin', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
-    { to: '/admin/academic-setup', label: 'Academic Setup', icon: <Building size={18} strokeWidth={2} /> },
-    { to: '/admin/faculty-allocation', label: 'Faculty Allocation', icon: <Users size={18} strokeWidth={2} /> },
-    { to: '/admin/analytics', label: 'Analytics', icon: <BarChart2 size={18} strokeWidth={2} /> },
-    { to: '/admin/students', label: 'Students', icon: <GraduationCap size={18} strokeWidth={2} /> },
-    { to: '/admin/faculty', label: 'Faculty', icon: <Users size={18} strokeWidth={2} /> },
-    { to: '/messages', label: <MessageLabel />, icon: <MessageSquare size={18} strokeWidth={2} /> },
-    { to: '/admin/logs', label: 'Logs', icon: <BarChart2 size={18} strokeWidth={2} /> },
-    { to: '/admin/settings', label: 'Settings', icon: <Settings size={18} strokeWidth={2} /> }
+    { to: '/admin', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} />, section: null },
+    { to: '/admin/departments', label: 'Departments', icon: <Building size={18} strokeWidth={2} />, section: 'Academic Setup' },
+    { to: '/admin/courses', label: 'Courses', icon: <GraduationCap size={18} strokeWidth={2} />, section: 'Academic Setup' },
+    { to: '/admin/subjects', label: 'Subjects', icon: <BookOpen size={18} strokeWidth={2} />, section: 'Academic Setup' },
+    { to: '/admin/academic-years', label: 'Academic Years', icon: <Calendar size={18} strokeWidth={2} />, section: 'Academic Setup' },
+    { to: '/admin/semesters', label: 'Semesters', icon: <Calendar size={18} strokeWidth={2} />, section: 'Academic Setup' },
+    { to: '/admin/faculty-allocation', label: 'Faculty Allocation', icon: <Users size={18} strokeWidth={2} />, section: null },
+    { to: '/admin/analytics', label: 'Analytics', icon: <BarChart2 size={18} strokeWidth={2} />, section: null },
+    { to: '/admin/students', label: 'Students', icon: <GraduationCap size={18} strokeWidth={2} />, section: null },
+    { to: '/admin/faculty', label: 'Faculty', icon: <Users size={18} strokeWidth={2} />, section: null },
+    { to: '/messages', label: <MessageLabel />, icon: <MessageSquare size={18} strokeWidth={2} />, section: null },
+    { to: '/admin/logs', label: 'Logs', icon: <BarChart2 size={18} strokeWidth={2} />, section: null },
+    { to: '/admin/settings', label: 'Settings', icon: <Settings size={18} strokeWidth={2} />, section: null }
   ];
 
   const getFacultyLinks = () => [
@@ -88,7 +92,7 @@ const Sidebar = memo(({ isOpen, setIsOpen }) => {
   ];
 
   const roleLinks = user?.role === 'admin' ? getAdminLinks() : user?.role === 'faculty' ? getFacultyLinks() : getStudentLinks();
-  const links = [...roleLinks, { to: '/profile', label: 'My Profile', icon: <User size={18} strokeWidth={2} /> }];
+  const links = [...roleLinks, { to: '/profile', label: 'My Profile', icon: <User size={18} strokeWidth={2} />, section: null }];
 
   return (
     <>
@@ -121,24 +125,46 @@ const Sidebar = memo(({ isOpen, setIsOpen }) => {
 
           {/* Navigation */}
           <div className="mt-4 px-4 space-y-1 pb-4">
-            {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end
-                onClick={() => setIsOpen && setIsOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center space-x-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-brand-100 text-slate-900 font-semibold'
-                      : 'text-slate-500 hover:bg-white hover:text-slate-900'
-                  }`
+            {(() => {
+              const rendered = [];
+              let lastSection = undefined;
+
+              links.forEach((link) => {
+                const section = link.section || null;
+                const sectionChanged = section !== lastSection;
+                if (sectionChanged && section) {
+                  rendered.push(
+                    <p key={`section-${section}`} className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      {section}
+                    </p>
+                  );
+                } else if (sectionChanged && !section && lastSection) {
+                  rendered.push(<div key={`divider-${link.to}`} className="my-1 border-t border-slate-100" />);
                 }
-              >
-                <div className="opacity-80">{link.icon}</div>
-                <span className="flex-1">{link.label}</span>
-              </NavLink>
-            ))}
+                lastSection = section;
+
+                rendered.push(
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    end
+                    onClick={() => setIsOpen && setIsOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center space-x-3 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                        isActive
+                          ? 'bg-brand-100 text-slate-900 font-semibold'
+                          : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                      }${section ? ' pl-5 text-xs' : ''}`
+                    }
+                  >
+                    <div className="opacity-80">{link.icon}</div>
+                    <span className="flex-1">{link.label}</span>
+                  </NavLink>
+                );
+              });
+
+              return rendered;
+            })()}
           </div>
         </div>
 

@@ -357,10 +357,7 @@ function App() {
             }
           />
 
-          {/* ── Fallbacks ────────────────────────────────────────────── */}
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-          
+          {/* ── Shared Routes (all roles) ─────────────────────────────── */}
           <Route
             path="/profile"
             element={
@@ -381,6 +378,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* ── Fallbacks ────────────────────────────────────────────── */}
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <AICopilot />
       </Router>

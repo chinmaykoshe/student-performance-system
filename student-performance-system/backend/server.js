@@ -123,7 +123,7 @@ app.use((err, req, res, next) => {
 
 // MongoDB Connection & Seeding
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/student-performance-db';
+const MONGO_URI = process.env.MONGO_ATLAS_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/student-performance-db';
 
 mongoose
   .connect(MONGO_URI)
