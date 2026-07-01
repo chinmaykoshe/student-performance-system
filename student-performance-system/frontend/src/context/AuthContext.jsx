@@ -12,10 +12,14 @@ export const api = axios.create({
 const apiCache = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
+// Routes that should never be cached (real-time or frequently changing)
+const NO_CACHE_PATTERNS = ['/messages', '/auth/me', '/unread-count'];
+const shouldCache = (url) => !NO_CACHE_PATTERNS.some(p => url.includes(p));
+
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
-  // Use cached data if available and valid
-  if (!config.forceRefresh && apiCache.has(url)) {
+  // Use cached data if available and valid (skip for real-time routes)
+  if (!config.forceRefresh && shouldCache(url) && apiCache.has(url)) {
     const cached = apiCache.get(url);
     if (Date.now() - cached.timestamp < CACHE_DURATION) {
       return { data: cached.data, status: 200, statusText: 'OK', headers: {}, config };
@@ -23,8 +27,10 @@ api.get = async (url, config = {}) => {
   }
   
   const response = await originalGet.call(api, url, config);
-  // Persist response to cache
-  apiCache.set(url, { data: response.data, timestamp: Date.now() });
+  // Persist response to cache (skip for real-time routes)
+  if (shouldCache(url)) {
+    apiCache.set(url, { data: response.data, timestamp: Date.now() });
+  }
   return response;
 };
 
@@ -39,6 +45,9 @@ api.put = async (url, data, config) => { clearCache(); return originalPut.call(a
 
 const originalDelete = api.delete;
 api.delete = async (url, config) => { clearCache(); return originalDelete.call(api, url, config); };
+
+const originalPatch = api.patch;
+api.patch = async (url, data, config) => { clearCache(); return originalPatch.call(api, url, data, config); };
 
 
 export const AuthProvider = ({ children }) => {

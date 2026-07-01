@@ -11,6 +11,11 @@ const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const { createLog } = require('./systemController');
 
+const Department = require('../models/Department');
+const Course = require('../models/Course');
+const AcademicYear = require('../models/AcademicYear');
+const Semester = require('../models/Semester');
+
 // @desc    Get all students
 // @route   GET /api/students
 // @access  Private (Admin, Faculty)
@@ -59,6 +64,13 @@ exports.getStudents = async (req, res) => {
       const fields = req.query.select.split(',').join(' ');
       query = query.select(fields);
     }
+
+    // Populate references so frontend gets readable values
+    query = query
+      .populate('department', 'name code')
+      .populate('course', 'name code')
+      .populate('semester', 'name number')
+      .populate('academicYear', 'year');
 
     // Sort
     if (req.query.sort) {
@@ -159,6 +171,15 @@ exports.updateMyMetrics = async (req, res) => {
     if (studyHours !== undefined) student.studyHours = studyHours;
     if (previousCGPA !== undefined) student.previousCGPA = previousCGPA;
 
+    // Recalculate AI performance predictions automatically based on updated metrics
+    const predictionResult = await predictStudentPerformance(student);
+    student.prediction = {
+      result: predictionResult.result,
+      confidence: predictionResult.confidence,
+      suggestions: predictionResult.suggestions,
+      predictedAt: new Date()
+    };
+
     await student.save();
 
     res.status(200).json({ success: true, data: student });
@@ -176,8 +197,12 @@ exports.createStudent = async (req, res) => {
       rollNumber,
       name,
       email,
-      department,
-      semester,
+      department,   // ObjectId string
+      course,       // ObjectId string
+      academicYear, // ObjectId string
+      semester,     // ObjectId string
+      division,
+      enrolledSubjects,
       attendancePercentage,
       assignmentMarks,
       internalMarks,
@@ -202,7 +227,7 @@ exports.createStudent = async (req, res) => {
     user = await User.create({
       name,
       email,
-      password: `${email.toLowerCase()}@123`, // Default password is email@123 (lowercase)
+      password: `${email.toLowerCase()}@123`,
       role: 'student'
     });
 
@@ -212,13 +237,17 @@ exports.createStudent = async (req, res) => {
       name,
       email,
       department,
+      course,
+      academicYear,
       semester,
-      attendancePercentage,
-      assignmentMarks,
-      internalMarks,
-      previousCGPA,
-      studyHours,
-      backlogs
+      division: division || 'A',
+      enrolledSubjects: enrolledSubjects || [],
+      attendancePercentage: attendancePercentage || 0,
+      assignmentMarks: assignmentMarks || 0,
+      internalMarks: internalMarks || 0,
+      previousCGPA: previousCGPA || 0,
+      studyHours: studyHours || 0,
+      backlogs: backlogs || 0
     });
 
     // Generate ML prediction
@@ -231,7 +260,6 @@ exports.createStudent = async (req, res) => {
     };
     await student.save();
 
-    // Trigger email alerts asynchronously
     if (student.attendancePercentage < 75.0) {
       sendLowAttendanceAlert(student);
       createLog('EMAIL_ALERT', 'system', `Sent low attendance alert to ${student.name} (${student.email})`);
@@ -445,24 +473,50 @@ exports.importStudents = async (req, res) => {
         let student = await Student.findOne({ rollNumber: rollNumber.toUpperCase() });
         let user = await User.findOne({ email });
 
+        // Dynamically resolve references
+        let deptDoc = await Department.findOne({
+          $or: [
+            { name: { $regex: new RegExp('^' + department.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '$', 'i') } },
+            { code: { $regex: new RegExp('^' + department.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '$', 'i') } }
+          ]
+        });
+        if (!deptDoc) deptDoc = await Department.findOne({});
+
+        let courseDoc = await Course.findOne({ department: deptDoc?._id });
+        if (!courseDoc) courseDoc = await Course.findOne({});
+
+        let yearDoc = await AcademicYear.findOne({ isCurrent: true });
+        if (!yearDoc) yearDoc = await AcademicYear.findOne({});
+
+        let semDoc = await Semester.findOne({ 
+          course: courseDoc?._id,
+          number: semester
+        });
+        if (!semDoc) {
+          semDoc = await Semester.findOne({ course: courseDoc?._id }) || await Semester.findOne({});
+        }
+
         if (!student) {
           if (!user) {
             // Create user
             user = await User.create({
               name,
               email,
-              password: `${email.toLowerCase()}@123`, // Default password is email@123 (lowercase)
+              password: `${email.toLowerCase()}@123`,
               role: 'student'
             });
           }
 
-          // Create student
+          // Create student with resolved ObjectIds
           student = new Student({
             rollNumber,
             name,
             email,
-            department,
-            semester,
+            department: deptDoc?._id,
+            course: courseDoc?._id,
+            academicYear: yearDoc?._id,
+            semester: semDoc?._id,
+            division: 'A',
             attendancePercentage,
             assignmentMarks,
             internalMarks,
@@ -471,11 +525,13 @@ exports.importStudents = async (req, res) => {
             backlogs
           });
         } else {
-          // Update existing student
+          // Update existing student with resolved ObjectIds
           student.name = name;
           student.email = email;
-          student.department = department;
-          student.semester = semester;
+          student.department = deptDoc?._id;
+          student.course = courseDoc?._id;
+          student.academicYear = yearDoc?._id;
+          student.semester = semDoc?._id;
           student.attendancePercentage = attendancePercentage;
           student.assignmentMarks = assignmentMarks;
           student.internalMarks = internalMarks;
@@ -542,7 +598,9 @@ exports.exportExcel = async (req, res) => {
       }
     }
 
-    const students = await Student.find(queryObj);
+    const students = await Student.find(queryObj)
+      .populate('department', 'name')
+      .populate('semester', 'name');
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Student Performance Report');
@@ -553,7 +611,7 @@ exports.exportExcel = async (req, res) => {
       { header: 'Name', key: 'name', width: 25 },
       { header: 'Email', key: 'email', width: 30 },
       { header: 'Department', key: 'department', width: 25 },
-      { header: 'Semester', key: 'semester', width: 10 },
+      { header: 'Semester', key: 'semester', width: 15 },
       { header: 'Attendance %', key: 'attendancePercentage', width: 15 },
       { header: 'Assignment Marks', key: 'assignmentMarks', width: 18 },
       { header: 'Internal Marks', key: 'internalMarks', width: 15 },
@@ -578,8 +636,8 @@ exports.exportExcel = async (req, res) => {
         rollNumber: student.rollNumber,
         name: student.name,
         email: student.email,
-        department: student.department,
-        semester: student.semester,
+        department: student.department?.name || student.department || '—',
+        semester: student.semester?.name || student.semester || '—',
         attendancePercentage: student.attendancePercentage,
         assignmentMarks: student.assignmentMarks,
         internalMarks: student.internalMarks,
@@ -612,7 +670,10 @@ exports.exportExcel = async (req, res) => {
 // @access  Private
 exports.exportPDF = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findById(req.params.id)
+      .populate('department', 'name code')
+      .populate('course', 'name code')
+      .populate('semester', 'name number');
 
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
@@ -651,19 +712,21 @@ exports.exportPDF = async (req, res) => {
     doc.text(`Roll Number: ${student.rollNumber}`, 50, 180);
     doc.text(`Name: ${student.name}`, 50, 200);
     doc.text(`Email: ${student.email}`, 50, 220);
+    doc.text(`Division: ${student.division || 'A'}`, 50, 240);
 
-    doc.text(`Department: ${student.department}`, 320, 180);
-    doc.text(`Semester: ${student.semester}`, 320, 200);
-    doc.text(`Current Date: ${new Date().toLocaleDateString()}`, 320, 220);
+    doc.text(`Department: ${student.department?.name || student.department || '—'}`, 320, 180);
+    doc.text(`Course: ${student.course?.name || student.course || '—'}`, 320, 200);
+    doc.text(`Semester: ${student.semester?.name || student.semester || '—'}`, 320, 220);
+    doc.text(`Current Date: ${new Date().toLocaleDateString()}`, 320, 240);
 
     // Divider
-    doc.moveTo(50, 250).lineTo(545, 250).stroke('#e5e7eb');
+    doc.moveTo(50, 260).lineTo(545, 260).stroke('#e5e7eb');
 
     // Section 2: Academic Statistics Table
-    doc.fontSize(14).text('ACADEMIC STANDING', 50, 270, { underline: true });
+    doc.fontSize(14).text('ACADEMIC STANDING', 50, 280, { underline: true });
     
     // Draw table
-    const tableTop = 300;
+    const tableTop = 310;
     doc.rect(50, tableTop, 495, 20).fill('#f3f4f6');
     doc.fillColor('#000000').fontSize(10);
     doc.text('Academic Metrics', 60, tableTop + 5);

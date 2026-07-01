@@ -15,7 +15,7 @@ const FacultyAnalytics = () => {
     const fetchAssessments = async () => {
       setLoading(true);
       try {
-        const res = await api.get('/assessments/history');
+        const res = await api.get('/assessments/all');
         if (res.data.success) {
           setAssessments(res.data.data);
         }

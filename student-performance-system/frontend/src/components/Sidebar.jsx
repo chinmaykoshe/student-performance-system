@@ -14,6 +14,7 @@ import {
   GraduationCap,
   User,
   Building,
+  BookOpen,
   X
 } from 'lucide-react';
 
@@ -70,7 +71,9 @@ const Sidebar = memo(({ isOpen, setIsOpen }) => {
   ];
 
   const getFacultyLinks = () => [
-    { to: '/faculty', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
+    { to: '/faculty', label: 'Overview', icon: <Home size={18} strokeWidth={2} /> },
+    { to: '/faculty/attendance', label: 'Attendance Register', icon: <Calendar size={18} strokeWidth={2} /> },
+    { to: '/faculty/marks', label: 'Marks Entry', icon: <CheckSquare size={18} strokeWidth={2} /> },
     { to: '/faculty/analytics', label: 'Assessment Analytics', icon: <BarChart2 size={18} strokeWidth={2} /> },
     { to: '/faculty/create-assessment', label: 'Create Assessment', icon: <CheckSquare size={18} strokeWidth={2} /> },
     { to: '/messages', label: <MessageLabel />, icon: <MessageSquare size={18} strokeWidth={2} /> }
@@ -120,7 +123,7 @@ const Sidebar = memo(({ isOpen, setIsOpen }) => {
           <div className="mt-4 px-4 space-y-1 pb-4">
             {links.map((link) => (
               <NavLink
-                key={link.label}
+                key={link.to}
                 to={link.to}
                 end
                 onClick={() => setIsOpen && setIsOpen(false)}
@@ -133,7 +136,7 @@ const Sidebar = memo(({ isOpen, setIsOpen }) => {
                 }
               >
                 <div className="opacity-80">{link.icon}</div>
-                <span>{link.label}</span>
+                <span className="flex-1">{link.label}</span>
               </NavLink>
             ))}
           </div>

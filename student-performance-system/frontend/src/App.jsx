@@ -14,6 +14,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminStudents from './pages/AdminStudents';
 import AdminFaculty from './pages/AdminFaculty';
 import FacultyDashboard from './pages/FacultyDashboard';
+import FacultyAttendance from './pages/FacultyAttendance';
+import FacultyMarks from './pages/FacultyMarks';
 import FacultyAnalytics from './pages/FacultyAnalytics';
 import FacultyCreateAssessment from './pages/FacultyCreateAssessment';
 import StudentDashboard from './pages/StudentDashboard';
@@ -27,6 +29,11 @@ import { AdminCalendar, AdminMessages, AdminProjects, AdminTasks, AdminTeam } fr
 import AICopilot from './components/AICopilot';
 
 import AdminAcademicSetup from './pages/AdminAcademicSetup';
+import AdminDepartments from './pages/AdminDepartments';
+import AdminCourses from './pages/AdminCourses';
+import AdminSubjects from './pages/AdminSubjects';
+import AdminAcademicYears from './pages/AdminAcademicYears';
+import AdminSemesters from './pages/AdminSemesters';
 import AdminFacultyAllocation from './pages/AdminFacultyAllocation';
 
 import { Menu } from 'lucide-react';
@@ -101,6 +108,56 @@ function App() {
               <ProtectedRoute allowedRoles={['admin']}>
                 <DashboardLayout>
                   <AdminAcademicSetup />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/departments"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminDepartments />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/courses"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminCourses />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/subjects"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminSubjects />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/academic-years"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminAcademicYears />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/semesters"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminSemesters />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -213,6 +270,26 @@ function App() {
               <ProtectedRoute allowedRoles={['faculty']}>
                 <DashboardLayout>
                   <FacultyDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faculty/attendance"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyAttendance />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faculty/marks"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyMarks />
                 </DashboardLayout>
               </ProtectedRoute>
             }

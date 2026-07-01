@@ -133,18 +133,28 @@ export const EmptyState = ({ icon, title, description, action }) => (
   </div>
 );
 
-export const Modal = ({ title, children, onClose, width = 'max-w-2xl' }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm">
-    <div className={`glass-card relative my-8 w-full ${width} shadow-2xl`}>
-      <button
-        onClick={onClose}
-        className="absolute right-5 top-5 rounded-full p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-900"
-        aria-label="Close dialog"
-      >
-        x
-      </button>
-      <h3 className="mb-6 text-xl font-semibold text-slate-900">{title}</h3>
-      {children}
+export const Modal = ({ title, children, onClose, width = 'max-w-2xl' }) => {
+  // Close on backdrop click
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"
+      onClick={handleBackdropClick}
+    >
+      <div className={`glass-card relative my-8 w-full ${width} shadow-2xl max-h-[90vh] overflow-y-auto`}>
+        <button
+          onClick={onClose}
+          className="absolute right-5 top-5 rounded-full p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-900 transition-colors z-10"
+          aria-label="Close dialog"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+        <h3 className="mb-6 text-xl font-semibold text-slate-900 pr-10">{title}</h3>
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};

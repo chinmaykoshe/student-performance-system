@@ -51,9 +51,23 @@ const Profile = () => {
     setPassStatus({ type: '', message: '' }); // Clear message on type
   };
 
-  const handleSubmit = (e) => {
+  const [profileStatus, setProfileStatus] = useState({ type: '', message: '' });
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Profile update functionality will be integrated with the backend shortly.');
+    setIsUpdatingProfile(true);
+    setProfileStatus({ type: '', message: '' });
+    try {
+      const res = await api.put('/auth/update-profile', { name: formData.name });
+      if (res.data?.success) {
+        setProfileStatus({ type: 'success', message: 'Profile name updated successfully!' });
+      }
+    } catch (err) {
+      setProfileStatus({ type: 'error', message: err.response?.data?.error || 'Failed to update profile.' });
+    } finally {
+      setIsUpdatingProfile(false);
+    }
   };
 
   const handleMetricsChange = (e) => {
@@ -184,10 +198,21 @@ const Profile = () => {
                 </label>
               </div>
 
+              {profileStatus.message && (
+                <div className={`mb-4 flex items-center space-x-3 p-4 rounded-xl text-sm border ${
+                  profileStatus.type === 'error'
+                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}>
+                  {profileStatus.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+                  <span>{profileStatus.message}</span>
+                </div>
+              )}
+
               <div className="flex justify-end pt-4">
-                <PrimaryButton type="submit">
+                <PrimaryButton type="submit" disabled={isUpdatingProfile}>
                   <Save size={18} />
-                  <span>Save Changes</span>
+                  <span>{isUpdatingProfile ? 'Saving...' : 'Save Changes'}</span>
                 </PrimaryButton>
               </div>
             </form>

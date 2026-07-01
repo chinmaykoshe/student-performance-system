@@ -9,8 +9,11 @@ const initialForm = {
   rollNumber: '',
   name: '',
   email: '',
-  department: 'Computer Applications (MCA)',
-  semester: 1,
+  department: '',
+  course: '',
+  academicYear: '',
+  semester: '',
+  division: 'A',
   attendancePercentage: 80,
   assignmentMarks: 70,
   internalMarks: 70,
@@ -31,6 +34,12 @@ const AdminStudents = () => {
   const [formData, setFormData] = useState(initialForm);
   const [saving, setSaving] = useState(false);
 
+  // Academic structure data for dropdowns
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+
   const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
@@ -48,21 +57,56 @@ const AdminStudents = () => {
 
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
+  // Load academic structure data for dropdowns on mount
+  useEffect(() => {
+    const fetchAcademic = async () => {
+      try {
+        const [depRes, couRes, yrRes, semRes] = await Promise.all([
+          api.get('/academic/departments'),
+          api.get('/academic/courses'),
+          api.get('/academic/years'),
+          api.get('/academic/semesters')
+        ]);
+        setDepartments(depRes.data.data || []);
+        setCourses(couRes.data.data || []);
+        setAcademicYears(yrRes.data.data || []);
+        setSemesters(semRes.data.data || []);
+      } catch (err) {
+        console.error('Failed to load academic structure:', err);
+      }
+    };
+    fetchAcademic();
+  }, []);
+
   const openAddModal = () => {
     setEditingStudent(null);
-    setFormData(initialForm);
+    // Pre-select first available options
+    setFormData({
+      ...initialForm,
+      department: departments[0]?._id || '',
+      course: courses[0]?._id || '',
+      academicYear: academicYears.find(y => y.isCurrent)?._id || academicYears[0]?._id || '',
+      semester: semesters[0]?._id || ''
+    });
     setModalOpen(true);
   };
 
   const openEditModal = (student) => {
     setEditingStudent(student);
-    setFormData({ ...initialForm, ...student });
+    setFormData({
+      ...initialForm,
+      ...student,
+      department: student.department?._id || student.department || '',
+      course: student.course?._id || student.course || '',
+      academicYear: student.academicYear?._id || student.academicYear || '',
+      semester: student.semester?._id || student.semester || ''
+    });
     setModalOpen(true);
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    const numericFields = ['semester', 'attendancePercentage', 'assignmentMarks', 'internalMarks', 'previousCGPA', 'studyHours', 'backlogs'];
+    const numericFields = ['attendancePercentage', 'assignmentMarks', 'internalMarks', 'previousCGPA', 'studyHours', 'backlogs'];
     setFormData((prev) => ({ ...prev, [name]: numericFields.includes(name) ? parseFloat(value) || 0 : value }));
   };
 
@@ -70,7 +114,9 @@ const AdminStudents = () => {
     e.preventDefault();
     try {
       setSaving(true);
-      const res = editingStudent ? await api.put(`/students/${editingStudent._id}`, formData) : await api.post('/students', formData);
+      const res = editingStudent
+        ? await api.put(`/students/${editingStudent._id}`, formData)
+        : await api.post('/students', formData);
       if (res.data?.success) {
         await fetchStudents();
         setModalOpen(false);
@@ -121,6 +167,11 @@ const AdminStudents = () => {
   const flagged = students.filter((s) => s.isFlagged).length;
   const pageCount = Math.ceil(total / 8) || 1;
 
+  // Filter semesters by selected course
+  const filteredSemesters = semesters.filter(sem =>
+    !formData.course || sem.course?._id === formData.course || sem.course === formData.course
+  );
+
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
       <Header title="Students" />
@@ -151,7 +202,7 @@ const AdminStudents = () => {
               <thead>
                 <tr>
                   <th className="px-6 pt-5">Student</th>
-                  <th className="px-6 pt-5">Department</th>
+                  <th className="px-6 pt-5">Department / Sem</th>
                   <th className="px-6 pt-5">Attendance</th>
                   <th className="px-6 pt-5">Marks</th>
                   <th className="px-6 pt-5">CGPA</th>
@@ -162,6 +213,9 @@ const AdminStudents = () => {
               <tbody>
                 {students.map((student) => {
                   const passing = student.prediction?.result === 'Pass';
+                  // department & semester are populated objects after our fix
+                  const deptName = student.department?.name || student.department || '—';
+                  const semName = student.semester?.name || `Sem ${student.semester}` || '—';
                   return (
                     <tr key={student._id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6">
@@ -176,7 +230,7 @@ const AdminStudents = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6"><p className="font-medium">{student.department?.split(' (')[0]}</p><p className="text-xs text-slate-500">Semester {student.semester}</p></td>
+                      <td className="px-6"><p className="font-medium">{deptName}</p><p className="text-xs text-slate-500">{semName}</p></td>
                       <td className="px-6"><Badge tone={student.attendancePercentage < 75 ? 'danger' : 'neutral'}>{student.attendancePercentage}%</Badge></td>
                       <td className="px-6 font-semibold">{student.internalMarks}/100</td>
                       <td className="px-6 font-semibold">{student.previousCGPA}</td>
@@ -210,29 +264,58 @@ const AdminStudents = () => {
       {modalOpen && (
         <Modal title={editingStudent ? 'Edit Student Record' : 'Add Student Record'} onClose={() => setModalOpen(false)}>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Personal Info */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {[
                 ['name', 'Student Full Name', 'text'],
                 ['rollNumber', 'University Roll Number', 'text'],
-                ['email', 'Official Email', 'email']
+                ['email', 'Official Email', 'email'],
+                ['division', 'Division', 'text']
               ].map(([name, label, type]) => (
                 <label key={name} className="space-y-2 text-xs font-semibold text-slate-500">
                   <span>{label}</span>
-                  <input type={type} name={name} value={formData[name]} onChange={handleFormChange} className="glass-input w-full" disabled={!!editingStudent && name !== 'name'} required />
+                  <input type={type} name={name} value={formData[name]} onChange={handleFormChange} className="glass-input w-full" disabled={!!editingStudent && (name === 'rollNumber' || name === 'email')} required={name !== 'division'} />
                 </label>
               ))}
+            </div>
+
+            {/* Academic Structure */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 border-t border-slate-100 pt-5">
               <label className="space-y-2 text-xs font-semibold text-slate-500">
                 <span>Department</span>
-                <select name="department" value={formData.department} onChange={handleFormChange} className="glass-input w-full bg-white">
-                  <option value="Computer Applications (MCA)">Computer Applications (MCA)</option>
-                  <option value="Computer Science (MSc)">Computer Science (MSc)</option>
-                  <option value="Information Technology (MSc)">Information Technology (MSc)</option>
+                <select name="department" value={formData.department} onChange={handleFormChange} className="glass-input w-full bg-white" required>
+                  <option value="">Select Department</option>
+                  {departments.map(d => <option key={d._id} value={d._id}>{d.name} ({d.code})</option>)}
+                </select>
+              </label>
+              <label className="space-y-2 text-xs font-semibold text-slate-500">
+                <span>Course / Program</span>
+                <select name="course" value={formData.course} onChange={handleFormChange} className="glass-input w-full bg-white" required>
+                  <option value="">Select Course</option>
+                  {courses.map(c => <option key={c._id} value={c._id}>{c.name} ({c.code})</option>)}
+                </select>
+              </label>
+              <label className="space-y-2 text-xs font-semibold text-slate-500">
+                <span>Academic Year</span>
+                <select name="academicYear" value={formData.academicYear} onChange={handleFormChange} className="glass-input w-full bg-white" required>
+                  <option value="">Select Year</option>
+                  {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}{y.isCurrent ? ' (Current)' : ''}</option>)}
+                </select>
+              </label>
+              <label className="space-y-2 text-xs font-semibold text-slate-500">
+                <span>Semester</span>
+                <select name="semester" value={formData.semester} onChange={handleFormChange} className="glass-input w-full bg-white" required>
+                  <option value="">Select Semester</option>
+                  {(formData.course ? filteredSemesters : semesters).map(s => (
+                    <option key={s._id} value={s._id}>{s.name}</option>
+                  ))}
                 </select>
               </label>
             </div>
+
+            {/* Academic Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-100 pt-5">
               {[
-                ['semester', 'Semester', 1, 6, 1],
                 ['attendancePercentage', 'Attendance %', 0, 100, 1],
                 ['assignmentMarks', 'Assignment', 0, 100, 1],
                 ['internalMarks', 'Internal', 0, 100, 1],
@@ -246,6 +329,7 @@ const AdminStudents = () => {
                 </label>
               ))}
             </div>
+
             <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
               <SecondaryButton type="button" onClick={() => setModalOpen(false)}>Cancel</SecondaryButton>
               <PrimaryButton type="submit" disabled={saving}><Save size={16} /> {saving ? 'Saving...' : 'Save Record'}</PrimaryButton>

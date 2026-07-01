@@ -3,6 +3,9 @@ const Subject = require('../models/Subject');
 const AttendanceRecord = require('../models/AttendanceRecord');
 const MarksRecord = require('../models/MarksRecord');
 
+// Helper: Get assigned subject IDs as strings (fixes ObjectId vs string comparison)
+const getAssignedIds = (user) => (user.assignedSubjects || []).map(id => id.toString());
+
 // Get subjects assigned to the logged-in faculty
 exports.getMySubjects = async (req, res) => {
   try {
@@ -26,12 +29,12 @@ exports.getStudentsBySubject = async (req, res) => {
   try {
     const { subjectId } = req.params;
     
-    // Authorization check
-    if (!req.user.assignedSubjects.includes(subjectId) && req.user.role !== 'admin') {
+    // Authorization check — compare as strings to handle ObjectId vs string mismatch
+    const assignedIds = getAssignedIds(req.user);
+    if (!assignedIds.includes(subjectId) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized to view students for this subject.' });
     }
 
-    // Students are enrolled in subjects via the `enrolledSubjects` array on Student model
     const students = await Student.find({ enrolledSubjects: subjectId })
       .populate('course', 'name code')
       .populate('semester', 'name number')
@@ -46,13 +49,13 @@ exports.getStudentsBySubject = async (req, res) => {
 // Batch mark attendance
 exports.markAttendance = async (req, res) => {
   try {
-    const { subjectId, date, records } = req.body; // records: [{ studentId, status, remarks }]
+    const { subjectId, date, records } = req.body;
 
-    if (!req.user.assignedSubjects.includes(subjectId) && req.user.role !== 'admin') {
+    const assignedIds = getAssignedIds(req.user);
+    if (!assignedIds.includes(subjectId) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized to mark attendance for this subject.' });
     }
 
-    // Upsert attendance records
     const attendanceOps = records.map(record => ({
       updateOne: {
         filter: { student: record.studentId, subject: subjectId, date: new Date(date) },
@@ -78,9 +81,10 @@ exports.markAttendance = async (req, res) => {
 // Batch enter marks
 exports.enterMarks = async (req, res) => {
   try {
-    const { subjectId, assessmentType, maxMarks, records } = req.body; // records: [{ studentId, marksObtained, remarks }]
+    const { subjectId, assessmentType, maxMarks, records } = req.body;
 
-    if (!req.user.assignedSubjects.includes(subjectId) && req.user.role !== 'admin') {
+    const assignedIds = getAssignedIds(req.user);
+    if (!assignedIds.includes(subjectId) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized to enter marks for this subject.' });
     }
 
@@ -112,7 +116,8 @@ exports.getAttendanceByDate = async (req, res) => {
   try {
     const { subjectId, date } = req.query;
     
-    if (!req.user.assignedSubjects.includes(subjectId) && req.user.role !== 'admin') {
+    const assignedIds = getAssignedIds(req.user);
+    if (!assignedIds.includes(subjectId) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized.' });
     }
 
@@ -137,7 +142,8 @@ exports.getMarksByAssessment = async (req, res) => {
   try {
     const { subjectId, assessmentType } = req.query;
 
-    if (!req.user.assignedSubjects.includes(subjectId) && req.user.role !== 'admin') {
+    const assignedIds = getAssignedIds(req.user);
+    if (!assignedIds.includes(subjectId) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized.' });
     }
 
