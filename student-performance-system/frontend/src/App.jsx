@@ -8,6 +8,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
+import Profile from './pages/Profile';
+import Messages from './pages/Messages';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminStudents from './pages/AdminStudents';
 import AdminFaculty from './pages/AdminFaculty';
@@ -22,12 +24,30 @@ import Settings from './pages/Settings';
 import { AdminCalendar, AdminMessages, AdminProjects, AdminTasks, AdminTeam } from './pages/AdminWorkspaces';
 import AICopilot from './components/AICopilot';
 
+import { Menu } from 'lucide-react';
+
 // Dashboard layout wrapping Sidebar and child dashboards
 const DashboardLayout = ({ children }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+
   return (
     <div className="flex h-screen w-screen bg-slate-50 text-slate-900 overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Mobile Top Bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-40 flex items-center px-4 justify-between">
+        <div className="flex items-center space-x-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white">
+            <span className="font-bold text-lg font-sans">A.</span>
+          </div>
+          <span className="text-sm font-semibold text-slate-900">PredictEdu</span>
+        </div>
+        <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600">
+          <Menu size={24} />
+        </button>
+      </div>
+
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      
+      <div className="flex-1 flex flex-col overflow-hidden pt-16 md:pt-0">
         {children}
       </div>
     </div>
@@ -228,6 +248,27 @@ function App() {
           {/* ── Fallbacks ────────────────────────────────────────────── */}
           <Route path="/" element={<RootRedirect />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'faculty', 'student']}>
+                <DashboardLayout>
+                  <Profile />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'faculty', 'student']}>
+                <DashboardLayout>
+                  <Messages />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
         <AICopilot />
       </Router>

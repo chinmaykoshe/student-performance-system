@@ -112,49 +112,32 @@ const StudentDashboard = () => {
     }
   }, [studentData]);
 
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900 transition-colors">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  if (error || !studentData) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
-        <AlertTriangle size={48} className="text-rose-500 mb-4 animate-bounce" />
-        <h2 className="text-xl font-bold text-slate-800 dark:text-white">Profile Access Error</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 text-center max-w-md">
-          {error || 'No academic profile matches your login. Contact administration to create your student record.'}
-        </p>
-      </div>
-    );
-  }
-
   // Chart Configuration (Radar Chart of academic dimensions)
-  const chartData = useMemo(() => ({
-    labels: ['Attendance', 'Assignment Marks', 'Internal Marks', 'CGPA (scaled)', 'Study Hours (scaled)'],
-    datasets: [
-      {
-        label: 'My Metrics',
-        data: [
-          studentData.attendancePercentage,
-          studentData.assignmentMarks,
-          studentData.internalMarks,
-          studentData.previousCGPA * 10,      // Scale to match 100 max
-          (studentData.studyHours / 12) * 100 // Scale to match 100 max (assuming 12 max study hours)
-        ],
-        backgroundColor: 'rgba(14, 165, 233, 0.2)',
-        borderColor: 'rgba(14, 165, 233, 1)',
-        borderWidth: 2,
-        pointBackgroundColor: 'rgba(14, 165, 233, 1)',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(14, 165, 233, 1)',
-      }
-    ]
-  }), [studentData]);
+  const chartData = useMemo(() => {
+    if (!studentData) return null;
+    return {
+      labels: ['Attendance', 'Assignment Marks', 'Internal Marks', 'CGPA (scaled)', 'Study Hours (scaled)'],
+      datasets: [
+        {
+          label: 'My Metrics',
+          data: [
+            studentData.attendancePercentage,
+            studentData.assignmentMarks,
+            studentData.internalMarks,
+            studentData.previousCGPA * 10,      // Scale to match 100 max
+            (studentData.studyHours / 12) * 100 // Scale to match 100 max (assuming 12 max study hours)
+          ],
+          backgroundColor: 'rgba(14, 165, 233, 0.2)',
+          borderColor: 'rgba(14, 165, 233, 1)',
+          borderWidth: 2,
+          pointBackgroundColor: 'rgba(14, 165, 233, 1)',
+          pointBorderColor: '#fff',
+          pointHoverBackgroundColor: '#fff',
+          pointHoverBorderColor: 'rgba(14, 165, 233, 1)',
+        }
+      ]
+    };
+  }, [studentData]);
 
   const chartOptions = useMemo(() => ({
     scales: {
@@ -188,7 +171,7 @@ const StudentDashboard = () => {
     }
   }), []);
 
-  const isPassing = studentData.prediction?.result === 'Pass';
+  const isPassing = studentData?.prediction?.result === 'Pass';
 
   // Gamification Badges (Quick Win #7)
   const badges = useMemo(() => {
@@ -203,6 +186,27 @@ const StudentDashboard = () => {
     if (studentData.previousCGPA >= 8.5) arr.push({ icon: Star, label: "Dean's List", color: 'text-yellow-500 bg-yellow-500/10' });
     return arr;
   }, [studentData, milestones]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-900 transition-colors">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (error || !studentData) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
+        <AlertTriangle size={48} className="text-rose-500 mb-4 animate-bounce" />
+        <h2 className="text-xl font-bold text-slate-800 dark:text-white">Profile Access Error</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 text-center max-w-md">
+          {error || 'No academic profile matches your login. Contact administration to create your student record.'}
+        </p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">

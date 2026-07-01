@@ -70,3 +70,34 @@ exports.getAllAssessments = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// @desc    Assign an assessment to a student manually
+// @route   POST /api/assessments/assign
+// @access  Private (Admin, Faculty)
+exports.assignAssessment = async (req, res) => {
+  try {
+    const { studentId, category, score } = req.body;
+    
+    if (!studentId || !category || score === undefined) {
+      return res.status(400).json({ success: false, error: 'Student ID, category, and score are required.' });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student || student.role !== 'student') {
+      return res.status(404).json({ success: false, error: 'Student not found.' });
+    }
+
+    const assessment = await SkillAssessment.create({
+      user: studentId,
+      category,
+      score: Number(score),
+      answers: []
+    });
+
+    await assessment.populate('user', 'name email role');
+
+    res.status(201).json({ success: true, data: assessment });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

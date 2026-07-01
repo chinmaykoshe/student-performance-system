@@ -151,6 +151,25 @@ exports.getFaculties = async (req, res) => {
   }
 };
 
+// @desc    Delete a faculty profile and user
+// @route   DELETE /api/auth/faculty/:id
+// @access  Private/Admin
+exports.deleteFaculty = async (req, res) => {
+  try {
+    const faculty = await Faculty.findById(req.params.id);
+    if (!faculty) {
+      return res.status(404).json({ success: false, error: 'Faculty not found' });
+    }
+    
+    await User.findByIdAndDelete(faculty.user);
+    await Faculty.findByIdAndDelete(req.params.id);
+    
+    res.status(200).json({ success: true, message: 'Faculty revoked successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // QUICK WIN #3 — Google OAuth 2.0 callback handler
 // Called by passport after successful Google login
@@ -289,6 +308,35 @@ exports.resetPassword = async (req, res) => {
     await user.save();
 
     res.status(200).json({ success: true, message: 'Password has been reset successfully. You can now log in.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Update password (authenticated user)
+// @route   PUT /api/auth/update-password
+// @access  Private
+exports.updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Current and new password are required.' });
+    }
+
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, error: 'Incorrect current password.' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

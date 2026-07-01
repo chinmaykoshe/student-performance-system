@@ -17,6 +17,8 @@ const systemRoutes = require('./routes/systemRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
+const workspaceRoutes = require('./routes/workspaceRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -86,6 +88,8 @@ app.use('/api/system', systemRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/resume', resumeRoutes);
+app.use('/api/workspace', workspaceRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Health Check Route (used by Render/uptime bots)
 app.get('/api/health', (req, res) => {
@@ -119,9 +123,9 @@ mongoose
   .connect(MONGO_URI)
   .then(async () => {
     console.log('MongoDB connected successfully.');
-    
-    // Seed initial users
-    await seedDatabase();
+    // User explicitly requested to DELETE WHOLE DATA AND INSERT NEW DATA unconditionally
+    const wipeAndSeed = require('./utils/seeder');
+    await wipeAndSeed();
     
     app.listen(PORT, () => {
       console.log(`Backend server running on port ${PORT}`);
@@ -130,52 +134,3 @@ mongoose
   .catch((err) => {
     console.error('Database connection error:', err.message);
   });
-
-// Database Seeding Helper
-async function seedDatabase() {
-  const User = require('./models/User');
-  const Faculty = require('./models/Faculty');
-  
-  try {
-    // 1. Seed Admin
-    const adminCount = await User.countDocuments({ role: 'admin' });
-    if (adminCount === 0) {
-      const adminUser = await User.create({
-        name: 'System Admin',
-        email: 'admin@system.com',
-        password: 'Admin@123', // Will be hashed automatically by pre-save hook
-        role: 'admin'
-      });
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Seeded default Admin user: admin@system.com / Admin@123');
-      } else {
-        console.log('Seeded default Admin user account.');
-      }
-    }
-
-    // 2. Seed Faculty
-    const facultyCount = await User.countDocuments({ role: 'faculty' });
-    if (facultyCount === 0) {
-      const facultyUser = await User.create({
-        name: 'Dr. Sarah Connor',
-        email: 'faculty@system.com',
-        password: 'faculty@system.com@123',
-        role: 'faculty'
-      });
-
-      await Faculty.create({
-        user: facultyUser._id,
-        name: facultyUser.name,
-        email: facultyUser.email,
-        department: 'Computer Applications (MCA)'
-      });
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('Seeded default Faculty user: faculty@system.com / faculty@system.com@123');
-      } else {
-        console.log('Seeded default Faculty user account.');
-      }
-    }
-  } catch (error) {
-    console.error('Error seeding database:', error.message);
-  }
-}

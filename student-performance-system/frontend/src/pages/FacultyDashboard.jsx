@@ -122,6 +122,15 @@ const FacultyDashboard = () => {
     }));
   }, []);
 
+  // Add Assessment Modal State
+  const [showAddAssessment, setShowAddAssessment] = useState(false);
+  const [assessmentForm, setAssessmentForm] = useState({
+    studentId: '',
+    category: '',
+    score: 0
+  });
+  const [addAssessmentLoading, setAddAssessmentLoading] = useState(false);
+
   const handleSaveForm = useCallback(async (e) => {
     e.preventDefault();
     if (!selectedStudent) return;
@@ -130,7 +139,6 @@ const FacultyDashboard = () => {
       setSaveLoading(true);
       const res = await api.put(`/students/${selectedStudent._id}`, editForm);
       if (res.data && res.data.success) {
-        // Update list locally
         setStudents(prev => prev.map(s => s._id === selectedStudent._id ? res.data.data : s));
         handleCloseModal();
       }
@@ -140,6 +148,23 @@ const FacultyDashboard = () => {
       setSaveLoading(false);
     }
   }, [selectedStudent, editForm, handleCloseModal]);
+
+  const handleAddAssessment = useCallback(async (e) => {
+    e.preventDefault();
+    try {
+      setAddAssessmentLoading(true);
+      const res = await api.post('/assessments/assign', assessmentForm);
+      if (res.data && res.data.success) {
+        setAssessments(prev => [res.data.data, ...prev]);
+        setShowAddAssessment(false);
+        setAssessmentForm({ studentId: '', category: '', score: 0 });
+      }
+    } catch (err) {
+      alert('Error assigning assessment: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setAddAssessmentLoading(false);
+    }
+  }, [assessmentForm]);
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
@@ -346,9 +371,24 @@ const FacultyDashboard = () => {
                   <BookOpen size={48} className="text-slate-450 mb-4" />
                   <p className="text-slate-500 dark:text-slate-400 font-medium">No assessment history available yet.</p>
                   <p className="text-xs text-slate-400 mt-1">Students will appear here once they complete MCQ skills assessments.</p>
+                  <button
+                    onClick={() => setShowAddAssessment(true)}
+                    className="mt-6 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold flex items-center space-x-2 transition-all shadow-md shadow-brand-500/20"
+                  >
+                    <span>Assign Assessment Manually</span>
+                  </button>
                 </GlassCard>
               ) : (
-                <div className="overflow-x-auto rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md">
+                <div className="space-y-4">
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowAddAssessment(true)}
+                      className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold flex items-center space-x-2 transition-all shadow-md shadow-brand-500/20"
+                    >
+                      <span>Add Assessment</span>
+                    </button>
+                  </div>
+                  <div className="overflow-x-auto rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md">
                   <table className="w-full text-left border-collapse bg-white/40 dark:bg-slate-900/30 backdrop-blur-md">
                     <thead>
                       <tr className="border-b border-slate-200/50 dark:border-slate-850/50 text-slate-400 text-xs font-bold uppercase tracking-wider bg-slate-50/50 dark:bg-slate-850/20">
@@ -390,6 +430,7 @@ const FacultyDashboard = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
                 </div>
               )}
             </div>
@@ -534,6 +575,97 @@ const FacultyDashboard = () => {
                 >
                   <Save size={16} />
                   <span>{saveLoading ? 'Saving...' : 'Save & Predict'}</span>
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Slide-over / Modal for Adding Assessment */}
+      {showAddAssessment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="glass-card w-full max-w-lg rounded-3xl p-8 border border-white/20 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowAddAssessment(false)}
+              className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-850/50"
+            >
+              <X size={20} />
+            </button>
+            
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6">Assign New Assessment</h3>
+
+            <form onSubmit={handleAddAssessment} className="space-y-6">
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pl-1">
+                  Select Student
+                </label>
+                <select
+                  value={assessmentForm.studentId}
+                  onChange={(e) => setAssessmentForm({ ...assessmentForm, studentId: e.target.value })}
+                  className="glass-input w-full px-4 py-3 rounded-2xl text-sm bg-white dark:bg-slate-900"
+                  required
+                >
+                  <option value="" disabled>-- Choose a student --</option>
+                  {/* For assigning, we might need all students or just assigned ones. Since Faculty sees all assigned in `students` state, we can use that! */}
+                  {students.map(s => (
+                    <option key={s.user} value={s.user}>{s.name} ({s.rollNumber})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pl-1">
+                  Assessment Category
+                </label>
+                <select
+                  value={assessmentForm.category}
+                  onChange={(e) => setAssessmentForm({ ...assessmentForm, category: e.target.value })}
+                  className="glass-input w-full px-4 py-3 rounded-2xl text-sm bg-white dark:bg-slate-900"
+                  required
+                >
+                  <option value="" disabled>-- Choose a category --</option>
+                  <option value="Programming">Programming</option>
+                  <option value="Web Development">Web Development</option>
+                  <option value="Data Structures">Data Structures</option>
+                  <option value="Databases">Databases</option>
+                  <option value="Aptitude">Aptitude</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pl-1">
+                  Assessment Score (%)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={assessmentForm.score}
+                  onChange={(e) => setAssessmentForm({ ...assessmentForm, score: Number(e.target.value) })}
+                  className="glass-input w-full px-4 py-3 rounded-2xl text-sm"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-4 pt-6 border-t border-slate-200/50 dark:border-slate-800/50">
+                <button
+                  type="button"
+                  onClick={() => setShowAddAssessment(false)}
+                  className="px-5 py-3 rounded-2xl font-semibold text-sm border border-slate-200/50 dark:border-slate-700/50 text-slate-500 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                
+                <button
+                  type="submit"
+                  disabled={addAssessmentLoading}
+                  className="px-6 py-3 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center space-x-2 shadow-lg shadow-brand-500/20 disabled:opacity-50"
+                >
+                  <Save size={16} />
+                  <span>{addAssessmentLoading ? 'Assigning...' : 'Assign Assessment'}</span>
                 </button>
               </div>
 

@@ -6,9 +6,11 @@ const {
   logout,
   getMe,
   getFaculties,
+  deleteFaculty,
   googleCallback,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  updatePassword
 } = require('../controllers/authController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -20,10 +22,12 @@ router.post('/logout', protect, logout);                          // Quick Win #
 router.post('/register', protect, authorize('admin'), register);
 router.get('/me', protect, getMe);
 router.get('/faculty', protect, authorize('admin'), getFaculties);
+router.delete('/faculty/:id', protect, authorize('admin'), deleteFaculty);
 
 // ── Password Reset ─────────────────────────────────────────────────────────
 router.post('/forgot-password', forgotPassword);                  // Quick Win #4
 router.put('/reset-password', resetPassword);                     // Quick Win #4
+router.put('/update-password', protect, updatePassword);
 
 // ── Google OAuth 2.0 ───────────────────────────────────────────────────────
 // Step 1: Redirect user to Google consent screen

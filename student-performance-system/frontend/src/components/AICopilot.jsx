@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Sparkles, X, Send, Bot, User } from 'lucide-react';
 import GlassCard from './GlassCard';
-import { api } from '../context/AuthContext';
+import { useAuth, api } from '../context/AuthContext';
 
 const AICopilot = () => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
       sender: 'bot',
-      text: "Hello! I am your PredictEdu Academic Copilot. Ask me about prediction parameters, academic recommendations, or model statistics!"
+      text: `Hello ${user?.name?.split(' ')[0] || ''}! I am your PredictEdu Academic Copilot. Ask me about prediction parameters, academic recommendations, or model statistics!`
     }
   ]);
   const [input, setInput] = useState('');
@@ -19,11 +20,27 @@ const AICopilot = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, typing]);
 
-  const predefinedPrompts = [
-    { label: "How does the AI model predict?", value: "explain_model" },
-    { label: "Attendance improvement strategy", value: "attendance_strategy" },
-    { label: "How to resolve low marks warnings?", value: "marks_warning" }
-  ];
+  const isAdmin = user?.role === 'admin';
+  const isFaculty = user?.role === 'faculty';
+  const isStudent = user?.role === 'student';
+
+  const predefinedPrompts = isAdmin 
+    ? [
+        { label: "Create a new project", value: "Create a new project named Alpha" },
+        { label: "Search for a student", value: "Search student John" },
+        { label: "How does the AI model predict?", value: "explain_model" }
+      ]
+    : isFaculty
+    ? [
+        { label: "Search for a student", value: "Search student John" },
+        { label: "How does the AI model predict?", value: "explain_model" },
+        { label: "Attendance improvement strategy", value: "attendance_strategy" }
+      ]
+    : [
+        { label: "How does the AI model predict?", value: "explain_model" },
+        { label: "Attendance improvement strategy", value: "attendance_strategy" },
+        { label: "How to resolve low marks warnings?", value: "marks_warning" }
+      ];
 
   const handleSend = async (text) => {
     if (!text.trim()) return;
@@ -39,6 +56,12 @@ const AICopilot = () => {
     const isSearchQuery = query.includes('student') || query.includes('search') || query.includes('find') || query.includes('who is');
 
     if (isSearchQuery) {
+      if (isStudent) {
+        setMessages(prev => [...prev, { sender: 'bot', text: 'Due to privacy and security policies, students cannot search the general database. You can only view your own performance metrics.' }]);
+        setTyping(false);
+        return;
+      }
+      
       try {
         // Extract the target search key
         let searchKey = '';
@@ -85,6 +108,45 @@ const AICopilot = () => {
       } catch (err) {
         console.error('Copilot search error:', err);
         setMessages(prev => [...prev, { sender: 'bot', text: "I encountered an error querying student profiles. Please check if your authentication token is valid." }]);
+      } finally {
+        setTyping(false);
+      }
+      return;
+    }
+
+    // Check if it's a project/team creation query
+    const isCreationQuery = (query.includes('project') || query.includes('team') || query.includes('task')) && 
+                            (query.includes('create') || query.includes('make') || query.includes('plan') || query.includes('add'));
+
+    if (isCreationQuery) {
+      if (!isAdmin) {
+        setMessages(prev => [...prev, { sender: 'bot', text: 'I am sorry, but only Administrators are authorized to create or manage workspace entities like Projects, Teams, and Tasks.' }]);
+        setTyping(false);
+        return;
+      }
+      
+      try {
+        let title = "New AI Project";
+        if (query.includes('named')) {
+          title = query.split('named')[1].trim();
+        } else if (query.includes('called')) {
+          title = query.split('called')[1].trim();
+        }
+        
+        // Remove punctuation
+        title = title.replace(/[?.!]/g, '');
+
+        const projectData = {
+          title: title.charAt(0).toUpperCase() + title.slice(1),
+          owner: 'AI Copilot',
+          status: 'Planned',
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        };
+        
+        await api.post('/workspace/projects', projectData);
+        setMessages(prev => [...prev, { sender: 'bot', text: `I have successfully created the project "${projectData.title}" for you. It's due in 7 days.` }]);
+      } catch (err) {
+        setMessages(prev => [...prev, { sender: 'bot', text: `Failed to create project. Error: ${err.response?.data?.error || err.message}` }]);
       } finally {
         setTyping(false);
       }

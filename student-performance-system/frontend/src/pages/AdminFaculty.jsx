@@ -65,6 +65,19 @@ const AdminFaculty = () => {
     }
   };
 
+  const handleRevoke = async (id) => {
+    if (window.confirm("Are you sure you want to revoke this faculty member's access?")) {
+      try {
+        const res = await api.delete(`/auth/faculty/${id}`);
+        if (res.data?.success) {
+          fetchFaculties();
+        }
+      } catch (err) {
+        alert('Error revoking faculty access: ' + (err.response?.data?.error || err.message));
+      }
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
       <Header title="Faculty" />
@@ -112,7 +125,11 @@ const AdminFaculty = () => {
                       <td className="px-6 font-medium">{fac.department}</td>
                       <td className="px-6"><span className="inline-flex items-center gap-2 text-sm text-slate-600"><Mail size={14} />{fac.email}</span></td>
                       <td className="px-6"><Badge tone="success"><UserCheck size={12} /> Active</Badge></td>
-                      <td className="px-6 text-right"><IconButton title="Revoke access"><X size={15} /></IconButton></td>
+                      <td className="px-6 text-right">
+                        <IconButton title="Revoke access" onClick={() => handleRevoke(fac._id)}>
+                          <X size={15} />
+                        </IconButton>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
