@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../context/AuthContext';
 import Header from '../components/Header';
-import GlassCard from '../components/GlassCard';
-import { FileClock, User, Clock, Search, Filter } from 'lucide-react';
+import { Badge, EmptyState, PageShell, SearchField, SelectField, StatCard, TableCard, Toolbar } from '../components/AdminUI';
+import { Clock, FileClock, Filter, Search, ShieldCheck, UserRound } from 'lucide-react';
+
+const actionTone = (action) => {
+  if (action?.includes('DELETE')) return 'danger';
+  if (action?.includes('UPDATE') || action?.includes('SETTINGS')) return 'warning';
+  if (action?.includes('CREATE') || action?.includes('EMAIL')) return 'success';
+  return 'neutral';
+};
 
 const AuditLogs = () => {
   const [logs, setLogs] = useState([]);
@@ -10,147 +17,98 @@ const AuditLogs = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAction, setFilterAction] = useState('ALL');
 
-  const fetchLogs = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/system/logs');
-      if (res.data && res.data.success) {
-        setLogs(res.data.data);
-      }
-    } catch (err) {
-      console.error('Logs fetch failed:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/system/logs');
+        if (res.data?.success) setLogs(res.data.data || []);
+      } catch (err) {
+        console.error('Logs fetch failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchLogs();
   }, []);
 
-  const getActionBadge = (action) => {
-    const base = "px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ";
-    switch (action) {
-      case 'STUDENT_CREATE':
-        return base + "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
-      case 'STUDENT_UPDATE':
-        return base + "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
-      case 'STUDENT_DELETE':
-        return base + "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20";
-      case 'SETTINGS_UPDATE':
-        return base + "bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20";
-      case 'EMAIL_ALERT':
-        return base + "bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20";
-      default:
-        return base + "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20";
-    }
+  const filteredLogs = useMemo(() => {
+    const q = searchTerm.toLowerCase();
+    return logs.filter((log) => {
+      const details = log.details || '';
+      const by = log.performedBy || '';
+      const matchesSearch = details.toLowerCase().includes(q) || by.toLowerCase().includes(q) || log.action?.toLowerCase().includes(q);
+      const matchesAction = filterAction === 'ALL' || log.action === filterAction;
+      return matchesSearch && matchesAction;
+    });
+  }, [filterAction, logs, searchTerm]);
+
+  const uniqueActions = ['ALL', ...new Set(logs.map((l) => l.action).filter(Boolean))];
+  const admins = new Set(logs.map((l) => l.performedBy).filter(Boolean)).size;
+  const destructive = logs.filter((l) => l.action?.includes('DELETE')).length;
+
+  const getInitials = (name) => {
+    if (!name) return 'SY';
+    const parts = name.split(' ');
+    return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : name.slice(0, 2).toUpperCase();
   };
 
-  // Filter and search
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = log.details.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          log.performedBy.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesAction = filterAction === 'ALL' || log.action === filterAction;
-    return matchesSearch && matchesAction;
-  });
-
-  const uniqueActions = ['ALL', ...new Set(logs.map(l => l.action))];
-
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
-      <Header title="Administrative Audit Activity Logs" />
-
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-6">
-        
-        {/* Filter Widget */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-              <Search size={16} />
-            </span>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="glass-input w-full pl-10 pr-4 py-3 rounded-2xl text-xs focus:ring-1"
-              placeholder="Search logs by keyword or administrator email..."
-            />
-          </div>
-
-          {/* Action Filter */}
-          <div className="flex items-center space-x-2">
-            <Filter size={16} className="text-slate-400 shrink-0" />
-            <select
-              value={filterAction}
-              onChange={(e) => setFilterAction(e.target.value)}
-              className="glass-input py-3 pl-4 pr-10 rounded-2xl text-xs focus:ring-1 cursor-pointer bg-transparent"
-            >
-              {uniqueActions.map(action => (
-                <option key={action} value={action} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white">
-                  {action}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
+      <Header title="Logs" />
+      <PageShell>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard title="Audit Events" value={logs.length} icon={<FileClock size={16} />} trend="Complete system activity trail" />
+          <StatCard title="Administrators" value={admins} icon={<UserRound size={16} />} trend="Users represented in logs" tone="brand" />
+          <StatCard title="Destructive Actions" value={destructive} icon={<ShieldCheck size={16} />} trend="Delete events requiring review" tone={destructive ? 'danger' : 'success'} />
         </div>
 
-        {/* Audit Logs Table */}
-        <GlassCard className="overflow-hidden p-0 rounded-3xl border border-slate-200/50 dark:border-slate-800/40">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+        <Toolbar>
+          <SearchField value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} icon={<Search size={18} />} placeholder="Search logs by details, action, or administrator" />
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-slate-400" />
+            <SelectField value={filterAction} onChange={(e) => setFilterAction(e.target.value)}>
+              {uniqueActions.map((action) => <option key={action} value={action}>{action.replaceAll('_', ' ')}</option>)}
+            </SelectField>
+          </div>
+        </Toolbar>
+
+        <TableCard>
+          {loading ? (
+            <div className="p-6 space-y-3">{[...Array(7)].map((_, i) => <div key={i} className="h-14 rounded-2xl bg-slate-100 animate-pulse" />)}</div>
+          ) : filteredLogs.length === 0 ? (
+            <EmptyState icon={<FileClock size={22} />} title="No audit records found" description="Try a different search term or action filter." />
+          ) : (
+            <table>
               <thead>
-                <tr className="bg-slate-100/55 dark:bg-slate-800/30 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-150 dark:border-slate-800/40">
-                  <th className="px-6 py-4.5">Event Action</th>
-                  <th className="px-6 py-4.5">Details</th>
-                  <th className="px-6 py-4.5">Performed By</th>
-                  <th className="px-6 py-4.5">Timestamp</th>
+                <tr>
+                  <th className="px-6 pt-5">Action</th>
+                  <th className="px-6 pt-5">Details</th>
+                  <th className="px-6 pt-5">Performed By</th>
+                  <th className="px-6 pt-5 text-right">Timestamp</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40 text-xs">
-                {loading ? (
-                  [...Array(5)].map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td className="px-6 py-4.5"><div className="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-lg"></div></td>
-                      <td className="px-6 py-4.5"><div className="h-4 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg"></div></td>
-                      <td className="px-6 py-4.5"><div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg"></div></td>
-                      <td className="px-6 py-4.5"><div className="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded-lg"></div></td>
-                    </tr>
-                  ))
-                ) : filteredLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan="4" className="text-center py-10 text-slate-450 italic">
-                      No system audit records found.
+              <tbody>
+                {filteredLogs.map((log) => (
+                  <tr key={log._id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 whitespace-nowrap"><Badge tone={actionTone(log.action)}>{log.action?.replaceAll('_', ' ') || 'SYSTEM'}</Badge></td>
+                    <td className="px-6 max-w-xl"><p className="text-sm font-medium leading-6 text-slate-700">{log.details}</p></td>
+                    <td className="px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">{getInitials(log.performedBy)}</div>
+                        <span className="text-sm font-semibold text-slate-700">{log.performedBy}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 text-right whitespace-nowrap">
+                      <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500"><Clock size={13} />{new Date(log.timestamp).toLocaleString()}</span>
                     </td>
                   </tr>
-                ) : (
-                  filteredLogs.map((log) => (
-                    <tr key={log._id} className="hover:bg-slate-100/30 dark:hover:bg-slate-800/10 transition duration-150">
-                      <td className="px-6 py-4.5 shrink-0 whitespace-nowrap">
-                        {getActionBadge(log.action)}
-                      </td>
-                      <td className="px-6 py-4.5 text-slate-700 dark:text-slate-350 font-medium">
-                        {log.details}
-                      </td>
-                      <td className="px-6 py-4.5 text-slate-500 dark:text-slate-400 whitespace-nowrap font-semibold flex items-center space-x-1.5 mt-0.5">
-                        <User size={12} className="text-slate-400" />
-                        <span>{log.performedBy}</span>
-                      </td>
-                      <td className="px-6 py-4.5 text-slate-450 whitespace-nowrap font-medium">
-                        <span className="flex items-center space-x-1.5">
-                          <Clock size={12} />
-                          <span>{new Date(log.timestamp).toLocaleString()}</span>
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
-          </div>
-        </GlassCard>
-
-      </main>
+          )}
+        </TableCard>
+      </PageShell>
     </div>
   );
 };

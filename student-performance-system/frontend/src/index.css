@@ -33,7 +33,7 @@ body {
 }
 
 .glass-card {
-  @apply bg-white border border-slate-100 rounded-2xl p-6 transition-all duration-300 hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] shadow-[0_2px_10px_-2px_rgba(0,0,0,0.02)];
+  @apply bg-white border border-slate-200/60 rounded-2xl p-6 transition-all duration-300;
 }
 
 .glass-input {

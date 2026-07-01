@@ -207,9 +207,6 @@ const StudentDashboard = () => {
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
       
-      {/* Background Orbs */}
-      <div className="absolute top-[10%] right-[10%] h-[300px] w-[300px] rounded-full bg-brand-400/10 blur-[100px] pointer-events-none"></div>
-
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         <Header title="My Performance Portal" />
 

@@ -53,8 +53,25 @@ app.use('/api/auth/register', authLimiter);
 
 // Middlewares
 app.use(express.json());
+const defaultClientOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173'
+];
+
+const configuredClientOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultClientOrigins, ...configuredClientOrigins])];
+
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true
 };
 app.use(cors(corsOptions));

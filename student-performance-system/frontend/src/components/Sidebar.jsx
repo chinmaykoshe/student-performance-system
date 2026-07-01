@@ -20,11 +20,14 @@ const Sidebar = memo(() => {
   const getAdminLinks = () => [
     { to: '/admin', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
     { to: '/admin/analytics', label: 'Analytics', icon: <BarChart2 size={18} strokeWidth={2} /> },
-    { to: '/admin/faculty', label: 'Projects', icon: <Briefcase size={18} strokeWidth={2} /> },
-    { to: '#tasks', label: 'Tasks', icon: <CheckSquare size={18} strokeWidth={2} /> },
-    { to: '#calendar', label: 'Calendar', icon: <Calendar size={18} strokeWidth={2} /> },
-    { to: '/admin/logs', label: 'Messages', icon: <MessageSquare size={18} strokeWidth={2} /> },
-    { to: '/admin/students', label: 'Team', icon: <Users size={18} strokeWidth={2} /> },
+    { to: '/admin/students', label: 'Students', icon: <GraduationCap size={18} strokeWidth={2} /> },
+    { to: '/admin/faculty', label: 'Faculty', icon: <Users size={18} strokeWidth={2} /> },
+    { to: '/admin/projects', label: 'Projects', icon: <Briefcase size={18} strokeWidth={2} /> },
+    { to: '/admin/tasks', label: 'Tasks', icon: <CheckSquare size={18} strokeWidth={2} /> },
+    { to: '/admin/calendar', label: 'Calendar', icon: <Calendar size={18} strokeWidth={2} /> },
+    { to: '/admin/messages', label: 'Messages', icon: <MessageSquare size={18} strokeWidth={2} /> },
+    { to: '/admin/team', label: 'Team', icon: <Users size={18} strokeWidth={2} /> },
+    { to: '/admin/logs', label: 'Logs', icon: <BarChart2 size={18} strokeWidth={2} /> },
     { to: '/admin/settings', label: 'Settings', icon: <Settings size={18} strokeWidth={2} /> }
   ];
 

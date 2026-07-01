@@ -1,23 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../context/AuthContext';
 import Header from '../components/Header';
-import GlassCard from '../components/GlassCard';
-import { 
-  Plus, 
-  X, 
-  Save, 
-  UserCheck, 
-  AlertTriangle,
-  Mail,
-  GraduationCap
-} from 'lucide-react';
+import { Badge, EmptyState, IconButton, Modal, PageShell, PrimaryButton, SearchField, SecondaryButton, StatCard, TableCard, Toolbar } from '../components/AdminUI';
+import { BookOpen, ChevronLeft, ChevronRight, Mail, Plus, Save, Search, ShieldCheck, UserCheck, Users, X } from 'lucide-react';
 
 const AdminFaculty = () => {
   const [faculties, setFaculties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,9 +23,7 @@ const AdminFaculty = () => {
     try {
       setLoading(true);
       const res = await api.get('/auth/faculty');
-      if (res.data && res.data.success) {
-        setFaculties(res.data.data);
-      }
+      if (res.data?.success) setFaculties(res.data.data || []);
     } catch (err) {
       console.error('Error fetching faculty profiles:', err);
     } finally {
@@ -40,27 +31,22 @@ const AdminFaculty = () => {
     }
   };
 
-  useEffect(() => {
-    fetchFaculties();
-  }, []);
+  useEffect(() => { fetchFaculties(); }, []);
 
-  const handleOpenAddModal = () => {
-    setFormData({
-      name: '',
-      email: '',
-      password: '',
-      role: 'faculty',
-      department: 'Computer Applications (MCA)'
-    });
-    setModalOpen(true);
-  };
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return faculties.filter((f) => f.name?.toLowerCase().includes(q) || f.email?.toLowerCase().includes(q) || f.department?.toLowerCase().includes(q));
+  }, [faculties, search]);
 
-  const handleFormChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const pageSize = 8;
+  const pageCount = Math.ceil(filtered.length / pageSize) || 1;
+  const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
+  const departments = new Set(faculties.map((f) => f.department)).size;
+
+  const getInitials = (name) => {
+    if (!name) return 'FC';
+    const parts = name.split(' ');
+    return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : name.slice(0, 2).toUpperCase();
   };
 
   const handleSubmit = async (e) => {
@@ -68,9 +54,8 @@ const AdminFaculty = () => {
     try {
       setSaving(true);
       const res = await api.post('/auth/register', formData);
-      if (res.data && res.data.success) {
-        alert('Faculty account created successfully!');
-        fetchFaculties();
+      if (res.data?.success) {
+        await fetchFaculties();
         setModalOpen(false);
       }
     } catch (err) {
@@ -81,173 +66,115 @@ const AdminFaculty = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
-      
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Header title="Manage Faculty Registry" />
+    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
+      <Header title="Faculty" />
+      <PageShell>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatCard title="Active Faculty" value={faculties.length} icon={<UserCheck size={16} />} trend="Accounts with portal access" />
+          <StatCard title="Departments" value={departments || 0} icon={<BookOpen size={16} />} trend="Academic ownership coverage" tone="brand" />
+        </div>
 
-        <main className="flex-1 p-8 max-w-7xl mx-auto w-full space-y-8">
-          
-          <div className="flex items-center justify-between">
-            <h3 className="text-base font-semibold text-slate-400 uppercase tracking-wider">Faculty List</h3>
-            
-            {/* Add Faculty Button */}
-            <button
-              onClick={handleOpenAddModal}
-              className="px-5 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center space-x-2 shadow-lg shadow-brand-500/20 transform active:scale-95 transition"
-            >
-              <Plus size={18} />
-              <span>Add Faculty Member</span>
-            </button>
+        <Toolbar>
+          <SearchField value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} icon={<Search size={18} />} placeholder="Search faculty by name, email, or department" />
+          <PrimaryButton onClick={() => setModalOpen(true)}><Plus size={17} /> Register Faculty</PrimaryButton>
+        </Toolbar>
+
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          <div className="xl:col-span-3">
+            <TableCard>
+              {loading ? (
+                <div className="p-6 space-y-3">{[...Array(6)].map((_, i) => <div key={i} className="h-14 rounded-2xl bg-slate-100 animate-pulse" />)}</div>
+              ) : visible.length === 0 ? (
+                <EmptyState icon={<Users size={22} />} title="No faculty members found" description="Add a faculty account or refine your search." action={<PrimaryButton onClick={() => setModalOpen(true)}><Plus size={16} /> Register Faculty</PrimaryButton>} />
+              ) : (
+                <table>
+                <thead>
+                  <tr>
+                    <th className="px-6 pt-5">Faculty Member</th>
+                    <th className="px-6 pt-5">Department</th>
+                    <th className="px-6 pt-5">Contact</th>
+                    <th className="px-6 pt-5">Access</th>
+                    <th className="px-6 pt-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((fac) => (
+                    <tr key={fac._id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold">{getInitials(fac.name)}</div>
+                          <div>
+                            <p className="font-semibold text-slate-900">{fac.name}</p>
+                            <p className="text-xs font-medium text-slate-500">FAC-{fac._id?.toString().slice(-4).toUpperCase()}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 font-medium">{fac.department}</td>
+                      <td className="px-6"><span className="inline-flex items-center gap-2 text-sm text-slate-600"><Mail size={14} />{fac.email}</span></td>
+                      <td className="px-6"><Badge tone="success"><UserCheck size={12} /> Active</Badge></td>
+                      <td className="px-6 text-right"><IconButton title="Revoke access"><X size={15} /></IconButton></td>
+                    </tr>
+                  ))}
+                </tbody>
+                </table>
+              )}
+            </TableCard>
           </div>
 
-          {/* Listing */}
-          {loading ? (
-            <div className="flex items-center justify-center h-96">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
-            </div>
-          ) : faculties.length === 0 ? (
-            <GlassCard className="flex flex-col items-center justify-center py-20">
-              <AlertTriangle size={48} className="text-slate-400 mb-4" />
-              <p className="text-slate-500 dark:text-slate-400 font-medium">No faculty members registered.</p>
-              <p className="text-xs text-slate-400 mt-1">Use the Add Faculty button to register members.</p>
-            </GlassCard>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
-              {faculties.map((fac) => (
-                <GlassCard key={fac._id} className="flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
-                        <UserCheck size={22} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 dark:text-slate-200">{fac.name}</h4>
-                        <p className="text-[11px] text-slate-400 font-medium tracking-wider uppercase">{fac.department}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mt-6">
-                      <div className="flex items-center space-x-2.5 text-sm text-slate-500 dark:text-slate-400">
-                        <Mail size={16} className="text-slate-400" />
-                        <span>{fac.email}</span>
-                      </div>
-                      <div className="flex items-center space-x-2.5 text-xs text-slate-400 pt-4 border-t border-slate-100 dark:border-slate-800/50 mt-4">
-                        <GraduationCap size={14} />
-                        <span>Registered Portal Access: YES</span>
-                      </div>
-                    </div>
+          <div className="glass-card xl:col-span-1 space-y-5">
+            <h2 className="text-base font-semibold text-slate-900">Faculty Coverage</h2>
+            {['Computer Applications (MCA)', 'Computer Science (MSc)', 'Information Technology (MSc)'].map((dept) => {
+              const count = faculties.filter((f) => f.department === dept).length;
+              return (
+                <div key={dept} className="rounded-2xl bg-slate-50 p-4 border border-slate-100">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-sm font-semibold text-slate-800">{dept}</p>
+                    <Badge tone={count ? 'brand' : 'neutral'}>{count}</Badge>
                   </div>
-                </GlassCard>
-              ))}
-            </div>
-          )}
-
-        </main>
-      </div>
-
-      {/* Add Faculty Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="glass-card w-full max-w-lg rounded-3xl p-8 border border-white/25 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            <button
-              onClick={() => setModalOpen(false)}
-              className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:bg-slate-100/50 dark:hover:bg-slate-850/50"
-            >
-              <X size={20} />
-            </button>
-            
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6">
-              Register Faculty Account
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pl-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleFormChange}
-                  className="glass-input w-full px-4 py-3 rounded-2xl text-sm"
-                  placeholder="Dr. Sarah Connor"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pl-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleFormChange}
-                  className="glass-input w-full px-4 py-3 rounded-2xl text-sm"
-                  placeholder="sconnor@university.edu"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pl-1">
-                  Portal Login Password
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleFormChange}
-                  className="glass-input w-full px-4 py-3 rounded-2xl text-sm"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pl-1">
-                  Assigned Department
-                </label>
-                <select
-                  name="department"
-                  value={formData.department}
-                  onChange={handleFormChange}
-                  className="glass-input w-full px-4 py-3 rounded-2xl text-sm bg-white dark:bg-slate-800"
-                >
-                  <option value="Computer Applications (MCA)">Computer Applications (MCA)</option>
-                  <option value="Computer Science (MSc)">Computer Science (MSc)</option>
-                  <option value="Information Technology (MSc)">Information Technology (MSc)</option>
-                </select>
-              </div>
-
-              <div className="flex items-center justify-end space-x-4 pt-6 border-t border-slate-200/50 dark:border-slate-800/50">
-                <button
-                  type="button"
-                  onClick={() => setModalOpen(false)}
-                  className="px-5 py-3 rounded-2xl font-semibold text-sm border border-slate-200/50 dark:border-slate-700/50 text-slate-500 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-3 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm flex items-center space-x-2 shadow-lg shadow-brand-500/20 disabled:opacity-50"
-                >
-                  <Save size={16} />
-                  <span>{saving ? 'Creating...' : 'Create Account'}</span>
-                </button>
-              </div>
-
-            </form>
+                </div>
+              );
+            })}
           </div>
         </div>
-      )}
 
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
+          <span className="text-xs font-semibold text-slate-500">Showing {visible.length} of {filtered.length} faculty members</span>
+          <div className="flex items-center gap-2">
+            <IconButton disabled={page === 1} onClick={() => setPage(page - 1)}><ChevronLeft size={16} /></IconButton>
+            <span className="text-xs font-semibold text-slate-600">Page {page} of {pageCount}</span>
+            <IconButton disabled={page >= pageCount} onClick={() => setPage(page + 1)}><ChevronRight size={16} /></IconButton>
+          </div>
+        </div>
+      </PageShell>
+
+      {modalOpen && (
+        <Modal title="Register Faculty Account" width="max-w-xl" onClose={() => setModalOpen(false)}>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {[
+              ['name', 'Full Name', 'text'],
+              ['email', 'Email Address', 'email'],
+              ['password', 'Portal Password', 'password']
+            ].map(([name, label, type]) => (
+              <label key={name} className="space-y-2 text-xs font-semibold text-slate-500">
+                <span>{label}</span>
+                <input type={type} name={name} value={formData[name]} onChange={(e) => setFormData((prev) => ({ ...prev, [name]: e.target.value }))} className="glass-input w-full" required />
+              </label>
+            ))}
+            <label className="space-y-2 text-xs font-semibold text-slate-500">
+              <span>Assigned Department</span>
+              <select name="department" value={formData.department} onChange={(e) => setFormData((prev) => ({ ...prev, department: e.target.value }))} className="glass-input w-full bg-white">
+                <option value="Computer Applications (MCA)">Computer Applications (MCA)</option>
+                <option value="Computer Science (MSc)">Computer Science (MSc)</option>
+                <option value="Information Technology (MSc)">Information Technology (MSc)</option>
+              </select>
+            </label>
+            <div className="flex justify-end gap-3 border-t border-slate-100 pt-5">
+              <SecondaryButton type="button" onClick={() => setModalOpen(false)}>Cancel</SecondaryButton>
+              <PrimaryButton type="submit" disabled={saving}><Save size={16} /> {saving ? 'Creating...' : 'Create Account'}</PrimaryButton>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

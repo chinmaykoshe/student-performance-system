@@ -195,12 +195,6 @@ const FacultyDashboard = () => {
 
                 {/* Filter selectors */}
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center space-x-2 bg-white/40 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 rounded-2xl px-3 py-1.5">
-                    <Filter size={16} className="text-slate-400" />
-                    <span className="text-xs font-semibold text-slate-400">Filters:</span>
-                  </div>
-                  
-                  {/* Semester */}
                   <select
                     value={semesterFilter}
                     onChange={(e) => { setSemesterFilter(e.target.value); setPage(1); }}

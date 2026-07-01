@@ -212,9 +212,6 @@ const AdminDashboard = () => {
                   <h3 className="text-base font-semibold text-slate-900">Performance Overview</h3>
                   <p className="text-sm text-slate-500 mt-1">Average CGPA progression across semesters</p>
                 </div>
-                <button className="px-4 py-2 border border-slate-100 rounded-full text-xs font-medium text-slate-900 hover:bg-slate-50 transition-colors">
-                  This Year ▾
-                </button>
               </div>
               <div className="flex-1 relative w-full h-[300px]">
                 {!loading && semesterPerformance.length > 0 && (
@@ -227,7 +224,6 @@ const AdminDashboard = () => {
             <div className="glass-card flex flex-col justify-between min-h-[400px]">
                <div className="flex justify-between items-center mb-6">
                   <h3 className="text-base font-semibold text-slate-900">Result Distribution</h3>
-                  <button className="p-2 text-slate-400 hover:bg-slate-50 rounded-full transition-colors"><MoreHorizontal size={16} /></button>
                </div>
                
                {!loading && (
@@ -265,10 +261,9 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             {/* Recent Students Table */}
-            <div className="glass-card lg:col-span-2 overflow-hidden">
+            <div className="glass-card lg:col-span-3 overflow-hidden">
                <div className="flex justify-between items-center mb-6">
                   <h3 className="text-base font-semibold text-slate-900">Recent Registrations</h3>
-                  <button className="text-sm font-medium text-brand-500 hover:text-brand-600 transition-colors">View All</button>
                </div>
                
                <div className="overflow-x-auto">
@@ -304,17 +299,7 @@ const AdminDashboard = () => {
                </div>
             </div>
 
-            {/* Upgrade Plan Widget (Inspiration Match) */}
-            <div className="glass-card bg-[#F3F0EB] border-transparent flex flex-col justify-center text-center items-center py-12">
-               <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-brand-500 mb-6">
-                 <TrendingUp size={24} />
-               </div>
-               <h3 className="text-lg font-bold text-slate-900 mb-2">Get more insights with advanced analytics.</h3>
-               <p className="text-sm text-slate-600 font-medium mb-8">Upgrade your plan to track more data and grow your institution faster.</p>
-               <button className="bg-slate-900 text-white font-medium text-sm px-6 py-3 rounded-full hover:bg-slate-800 transition-colors w-full">
-                 Upgrade Now
-               </button>
-            </div>
+
 
           </div>
 
