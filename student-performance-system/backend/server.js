@@ -21,6 +21,7 @@ const resumeRoutes = require('./routes/resumeRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 const academicRoutes = require('./routes/academicRoutes');
+const facultyRoutes = require('./routes/facultyRoutes');
 
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -94,6 +95,7 @@ app.use('/api/resume', resumeRoutes);
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/academic', academicRoutes);
+app.use('/api/faculty', facultyRoutes);
 
 // Health Check Route (used by Render/uptime bots)
 app.get('/api/health', (req, res) => {

@@ -251,3 +251,55 @@ Return exactly:
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// ─── POST /api/ai/generate-assessment ─────────────────────────────────────────
+// @desc    Generate MCQs for an Assessment Template using Gemini
+// @access  Private (Faculty, Admin)
+exports.generateAssessment = async (req, res) => {
+  const userId = req.user._id.toString();
+  const { topic, questionCount = 5 } = req.body;
+
+  if (!topic) {
+    return res.status(400).json({ success: false, error: 'Topic is required to generate assessment' });
+  }
+
+  // Enforce AI token limits
+  const check = canUseTokens(userId, 500);
+  if (!check.allowed) return limitDenied(res, check, getUsage(userId));
+
+  const prompt = `You are an expert academic evaluator. Create ${questionCount} multiple-choice questions about "${topic}".
+Output ONLY valid JSON. No markdown wrappers, no introductory text.
+The JSON must be an array of objects. Each object must have the exact following keys:
+"question": a string, the question text
+"options": an array of 4 string options
+"correctOption": a string, exactly matching one of the options
+`;
+
+  try {
+    const aiResponse = await callGemini(prompt);
+    recordUsage(userId, aiResponse.tokensUsed);
+
+    // Strip markdown formatting if the AI still adds it
+    let jsonText = aiResponse.text.trim();
+    if (jsonText.startsWith('\`\`\`json')) {
+      jsonText = jsonText.substring(7);
+    }
+    if (jsonText.startsWith('\`\`\`')) {
+      jsonText = jsonText.substring(3);
+    }
+    if (jsonText.endsWith('\`\`\`')) {
+      jsonText = jsonText.substring(0, jsonText.length - 3);
+    }
+    jsonText = jsonText.trim();
+
+    const questions = JSON.parse(jsonText);
+    
+    if (!Array.isArray(questions)) {
+      throw new Error("AI did not return an array.");
+    }
+
+    res.status(200).json({ success: true, data: questions, tokensUsed: aiResponse.tokensUsed });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to generate assessment. Please try again or refine the topic.' });
+  }
+};

@@ -14,6 +14,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminStudents from './pages/AdminStudents';
 import AdminFaculty from './pages/AdminFaculty';
 import FacultyDashboard from './pages/FacultyDashboard';
+import FacultyAnalytics from './pages/FacultyAnalytics';
+import FacultyCreateAssessment from './pages/FacultyCreateAssessment';
 import StudentDashboard from './pages/StudentDashboard';
 import Assessment from './pages/Assessment';
 import AICareerCoach from './pages/AICareerCoach';
@@ -23,6 +25,9 @@ import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 import { AdminCalendar, AdminMessages, AdminProjects, AdminTasks, AdminTeam } from './pages/AdminWorkspaces';
 import AICopilot from './components/AICopilot';
+
+import AdminAcademicSetup from './pages/AdminAcademicSetup';
+import AdminFacultyAllocation from './pages/AdminFacultyAllocation';
 
 import { Menu } from 'lucide-react';
 
@@ -91,6 +96,26 @@ function App() {
             }
           />
           <Route
+            path="/admin/academic-setup"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminAcademicSetup />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/faculty-allocation"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminFacultyAllocation />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/analytics"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -151,16 +176,6 @@ function App() {
             }
           />
           <Route
-            path="/admin/messages"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <DashboardLayout>
-                  <AdminMessages />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/admin/team"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -198,6 +213,26 @@ function App() {
               <ProtectedRoute allowedRoles={['faculty']}>
                 <DashboardLayout>
                   <FacultyDashboard />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faculty/analytics"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyAnalytics />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faculty/create-assessment"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyCreateAssessment />
                 </DashboardLayout>
               </ProtectedRoute>
             }

@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
-import { NavLink } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { memo, useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth, api } from '../context/AuthContext';
 import { 
   Home, 
   BarChart2, 
@@ -13,36 +13,74 @@ import {
   LogOut,
   GraduationCap,
   User,
+  Building,
   X
 } from 'lucide-react';
 
 const Sidebar = memo(({ isOpen, setIsOpen }) => {
   const { user, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get('/messages/unread-count');
+        if (res.data.success) {
+          setUnreadCount(res.data.count);
+        }
+      } catch (err) {
+        // fail silently for polling
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Optionally clear unread count if we are currently on the messages page
+  useEffect(() => {
+    if (location.pathname === '/messages') {
+      setUnreadCount(0); // Messages are marked as read when opening a chat
+    }
+  }, [location.pathname]);
+
+  const MessageLabel = () => (
+    <div className="flex items-center justify-between w-full">
+      <span>Messages</span>
+      {unreadCount > 0 && (
+        <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+          {unreadCount}
+        </span>
+      )}
+    </div>
+  );
 
   const getAdminLinks = () => [
     { to: '/admin', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
+    { to: '/admin/academic-setup', label: 'Academic Setup', icon: <Building size={18} strokeWidth={2} /> },
+    { to: '/admin/faculty-allocation', label: 'Faculty Allocation', icon: <Users size={18} strokeWidth={2} /> },
     { to: '/admin/analytics', label: 'Analytics', icon: <BarChart2 size={18} strokeWidth={2} /> },
     { to: '/admin/students', label: 'Students', icon: <GraduationCap size={18} strokeWidth={2} /> },
     { to: '/admin/faculty', label: 'Faculty', icon: <Users size={18} strokeWidth={2} /> },
-    { to: '/admin/projects', label: 'Projects', icon: <Briefcase size={18} strokeWidth={2} /> },
-    { to: '/admin/tasks', label: 'Tasks', icon: <CheckSquare size={18} strokeWidth={2} /> },
-    { to: '/admin/calendar', label: 'Calendar', icon: <Calendar size={18} strokeWidth={2} /> },
-    { to: '/admin/messages', label: 'Messages', icon: <MessageSquare size={18} strokeWidth={2} /> },
-    { to: '/admin/team', label: 'Team', icon: <Users size={18} strokeWidth={2} /> },
+    { to: '/messages', label: <MessageLabel />, icon: <MessageSquare size={18} strokeWidth={2} /> },
     { to: '/admin/logs', label: 'Logs', icon: <BarChart2 size={18} strokeWidth={2} /> },
     { to: '/admin/settings', label: 'Settings', icon: <Settings size={18} strokeWidth={2} /> }
   ];
 
   const getFacultyLinks = () => [
     { to: '/faculty', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
-    { to: '/messages', label: 'Messages', icon: <MessageSquare size={18} strokeWidth={2} /> }
+    { to: '/faculty/analytics', label: 'Assessment Analytics', icon: <BarChart2 size={18} strokeWidth={2} /> },
+    { to: '/faculty/create-assessment', label: 'Create Assessment', icon: <CheckSquare size={18} strokeWidth={2} /> },
+    { to: '/messages', label: <MessageLabel />, icon: <MessageSquare size={18} strokeWidth={2} /> }
   ];
 
   const getStudentLinks = () => [
     { to: '/student', label: 'Dashboard', icon: <Home size={18} strokeWidth={2} /> },
     { to: '/student/assessment', label: 'Tasks', icon: <CheckSquare size={18} strokeWidth={2} /> },
     { to: '/student/ai-coach', label: 'AI Coach', icon: <MessageSquare size={18} strokeWidth={2} /> },
-    { to: '/messages', label: 'Messages', icon: <MessageSquare size={18} strokeWidth={2} /> },
+    { to: '/messages', label: <MessageLabel />, icon: <MessageSquare size={18} strokeWidth={2} /> },
     { to: '/student/resume-builder', label: 'Resume', icon: <Briefcase size={18} strokeWidth={2} /> }
   ];
 

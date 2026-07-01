@@ -147,7 +147,7 @@ const Messages = () => {
                   </div>
                 ) : (
                   messages.map(msg => {
-                    const isMe = msg.sender === user.id;
+                    const isMe = msg.sender === user._id;
                     return (
                       <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[70%] rounded-2xl px-5 py-3 ${isMe ? 'bg-brand-500 text-white rounded-br-sm' : 'bg-white border border-slate-200 text-slate-800 rounded-bl-sm shadow-sm'}`}>

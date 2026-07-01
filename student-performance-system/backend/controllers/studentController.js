@@ -112,7 +112,13 @@ exports.getStudents = async (req, res) => {
 // @access  Private
 exports.getStudent = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id).populate('assignedFaculty', 'name email');
+    const student = await Student.findById(req.params.id)
+      .populate('department', 'name code')
+      .populate('course', 'name code')
+      .populate('academicYear', 'year')
+      .populate('semester', 'name number')
+      .populate('enrolledSubjects', 'name code type credits maxTotalMarks')
+      .populate('assignedFaculty', 'name email');
 
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
@@ -122,6 +128,38 @@ exports.getStudent = async (req, res) => {
     if (req.user.role === 'student' && req.user.email !== student.email) {
       return res.status(403).json({ success: false, error: 'Not authorized to view other students' });
     }
+
+    res.status(200).json({ success: true, data: student });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Update current student metrics
+// @route   PUT /api/students/my-metrics
+// @access  Private (Student)
+exports.updateMyMetrics = async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ success: false, error: 'Only students can update their own metrics' });
+    }
+
+    const { attendancePercentage, assignmentMarks, internalMarks, studyHours, previousCGPA } = req.body;
+    
+    // Find the student profile linked to this user email
+    let student = await Student.findOne({ email: req.user.email });
+    if (!student) {
+      return res.status(404).json({ success: false, error: 'Student profile not found' });
+    }
+
+    // Update only allowed fields
+    if (attendancePercentage !== undefined) student.attendancePercentage = attendancePercentage;
+    if (assignmentMarks !== undefined) student.assignmentMarks = assignmentMarks;
+    if (internalMarks !== undefined) student.internalMarks = internalMarks;
+    if (studyHours !== undefined) student.studyHours = studyHours;
+    if (previousCGPA !== undefined) student.previousCGPA = previousCGPA;
+
+    await student.save();
 
     res.status(200).json({ success: true, data: student });
   } catch (err) {

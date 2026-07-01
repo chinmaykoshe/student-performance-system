@@ -3,26 +3,29 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const Faculty = require('../models/Faculty');
 
-// @desc    Get contacts (Students see Faculties, Faculties see assigned Students)
+// @desc    Get contacts (All users now visible, with block status)
 // @route   GET /api/messages/contacts
 // @access  Private
 exports.getContacts = async (req, res) => {
   try {
-    const userRole = req.user.role;
-    let contacts = [];
-
-    if (userRole === 'student') {
-      // Students can message any faculty for now
-      const faculties = await Faculty.find({}).populate('user', 'name email role');
-      contacts = faculties.map(f => f.user).filter(u => u); // extract populated user
-    } else if (userRole === 'faculty') {
-      // Faculty can message any assigned students
-      const students = await Student.find({}).populate('user', 'name email role');
-      contacts = students.map(s => s.user).filter(u => u);
-    } else {
-      // Admin sees everyone
-      contacts = await User.find({ _id: { $ne: req.user._id } }).select('name email role');
+    // Filter users based on role
+    let query = { _id: { $ne: req.user._id } };
+    if (req.user.role === 'student') {
+      // Students can only see Faculty and Admin
+      query.role = { $in: ['faculty', 'admin'] };
     }
+    const users = await User.find(query).select('name email role');
+    
+    // Get current user to check blocked list
+    const currentUser = await User.findById(req.user._id).select('blockedUsers');
+    const blockedList = currentUser.blockedUsers ? currentUser.blockedUsers.map(id => id.toString()) : [];
+
+    // Map users to include isBlocked flag
+    const contacts = users.map(u => {
+      const userObj = u.toObject();
+      userObj.isBlocked = blockedList.includes(userObj._id.toString());
+      return userObj;
+    });
 
     res.status(200).json({ success: true, count: contacts.length, data: contacts });
   } catch (err) {
@@ -68,6 +71,20 @@ exports.sendMessage = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Receiver and content are required' });
     }
 
+    // Check block status
+    const senderUser = await User.findById(req.user._id);
+    const receiverUser = await User.findById(receiverId);
+
+    if (senderUser.blockedUsers?.includes(receiverId)) {
+      return res.status(403).json({ success: false, error: 'You have blocked this user' });
+    }
+    if (receiverUser.blockedUsers?.includes(req.user._id)) {
+      return res.status(403).json({ success: false, error: 'You are blocked by this user' });
+    }
+    if (senderUser.role === 'student' && receiverUser.role === 'student') {
+      return res.status(403).json({ success: false, error: 'Students cannot message other students directly' });
+    }
+
     const message = await DirectMessage.create({
       sender: req.user._id,
       receiver: receiverId,
@@ -75,6 +92,64 @@ exports.sendMessage = async (req, res) => {
     });
 
     res.status(201).json({ success: true, data: message });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Block a user
+// @route   POST /api/messages/block/:userId
+// @access  Private
+exports.blockUser = async (req, res) => {
+  try {
+    const userToBlock = req.params.userId;
+    if (userToBlock === req.user._id.toString()) {
+      return res.status(400).json({ success: false, error: 'You cannot block yourself' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user.blockedUsers) user.blockedUsers = [];
+    
+    if (!user.blockedUsers.includes(userToBlock)) {
+      user.blockedUsers.push(userToBlock);
+      await user.save();
+    }
+    
+    res.status(200).json({ success: true, message: 'User blocked successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Unblock a user
+// @route   POST /api/messages/unblock/:userId
+// @access  Private
+exports.unblockUser = async (req, res) => {
+  try {
+    const userToUnblock = req.params.userId;
+    const user = await User.findById(req.user._id);
+    
+    if (user.blockedUsers && user.blockedUsers.includes(userToUnblock)) {
+      user.blockedUsers = user.blockedUsers.filter(id => id.toString() !== userToUnblock);
+      await user.save();
+    }
+    
+    res.status(200).json({ success: true, message: 'User unblocked successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Get total unread messages count for current user
+// @route   GET /api/messages/unread-count
+// @access  Private
+exports.getUnreadCount = async (req, res) => {
+  try {
+    const unreadCount = await DirectMessage.countDocuments({
+      receiver: req.user._id,
+      isRead: false
+    });
+    res.status(200).json({ success: true, count: unreadCount });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

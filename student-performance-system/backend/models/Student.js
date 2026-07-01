@@ -24,16 +24,33 @@ const StudentSchema = new mongoose.Schema({
     lowercase: true
   },
   department: {
-    type: String,
-    required: [true, 'Please select a department'],
-    trim: true
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+    required: [true, 'Please select a department']
+  },
+  course: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Course',
+    required: [true, 'Please select a course']
+  },
+  academicYear: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'AcademicYear',
+    required: [true, 'Please select an academic year']
   },
   semester: {
-    type: Number,
-    required: [true, 'Please specify the semester'],
-    min: [1, 'Semester cannot be less than 1'],
-    max: [6, 'Semester cannot be more than 6']
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Semester',
+    required: [true, 'Please select a semester']
   },
+  division: {
+    type: String,
+    default: 'A'
+  },
+  enrolledSubjects: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject'
+  }],
   attendancePercentage: {
     type: Number,
     required: [true, 'Please specify attendance percentage'],

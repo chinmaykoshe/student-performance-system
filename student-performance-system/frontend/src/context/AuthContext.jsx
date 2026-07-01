@@ -51,8 +51,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const requestInterceptor = api.interceptors.request.use(
       (config) => {
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        const currentToken = localStorage.getItem('token');
+        if (currentToken) {
+          config.headers.Authorization = `Bearer ${currentToken}`;
         }
         return config;
       },
@@ -61,11 +62,11 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    // Clean up interceptor on token change
+    // Clean up interceptor on unmount
     return () => {
       api.interceptors.request.eject(requestInterceptor);
     };
-  }, [token]);
+  }, []);
 
   // Load user profile on app load if token exists
   useEffect(() => {
