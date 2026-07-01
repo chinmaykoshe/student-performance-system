@@ -193,128 +193,132 @@ const Analytics = () => {
         
         {/* Analytics Top Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <GlassCard className="flex items-center space-x-4">
-            <div className="p-3 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-2xl">
+          <div className="glass-card flex items-center space-x-4">
+            <div className="p-3 bg-brand-100 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 rounded-xl">
               <Compass size={22} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Average CGPA</p>
-              <p className="text-xl font-bold mt-0.5 text-slate-855 dark:text-white">{metrics.avgCgpa}</p>
+              <p className="text-sm font-medium text-slate-500">Average CGPA</p>
+              <p className="text-2xl font-bold mt-0.5 text-slate-900 dark:text-white font-sans">{metrics.avgCgpa}</p>
             </div>
-          </GlassCard>
+          </div>
 
-          <GlassCard className="flex items-center space-x-4">
-            <div className="p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+          <div className="glass-card flex items-center space-x-4">
+            <div className="p-3 bg-brand-100 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 rounded-xl">
               <Hourglass size={22} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Daily Study Hours</p>
-              <p className="text-xl font-bold mt-0.5 text-slate-855 dark:text-white">{metrics.avgStudyHours} hrs</p>
+              <p className="text-sm font-medium text-slate-500">Daily Study Hours</p>
+              <p className="text-2xl font-bold mt-0.5 text-slate-900 dark:text-white font-sans">{metrics.avgStudyHours} hrs</p>
             </div>
-          </GlassCard>
+          </div>
 
-          <GlassCard className="flex items-center space-x-4">
-            <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl">
+          <div className="glass-card flex items-center space-x-4">
+            <div className="p-3 bg-brand-100 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 rounded-xl">
               <Flame size={22} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Backlog Incident Rate</p>
-              <p className="text-xl font-bold mt-0.5 text-slate-855 dark:text-white">{metrics.backlogPercentage}%</p>
+              <p className="text-sm font-medium text-slate-500">Backlog Incident Rate</p>
+              <p className="text-2xl font-bold mt-0.5 text-slate-900 dark:text-white font-sans">{metrics.backlogPercentage}%</p>
             </div>
-          </GlassCard>
+          </div>
 
-          <GlassCard className="flex items-center space-x-4">
-            <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+          <div className="glass-card flex items-center space-x-4">
+            <div className="p-3 bg-brand-100 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400 rounded-xl">
               <Target size={22} />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Peak CGPA Score</p>
-              <p className="text-xl font-bold mt-0.5 text-slate-855 dark:text-white">{metrics.highestCgpa}</p>
+              <p className="text-sm font-medium text-slate-500">Peak CGPA Score</p>
+              <p className="text-2xl font-bold mt-0.5 text-slate-900 dark:text-white font-sans">{metrics.highestCgpa}</p>
             </div>
-          </GlassCard>
+          </div>
         </div>
 
         {/* Analytics Charts grids */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Scatter correlation graph */}
-          <GlassCard className="lg:col-span-2">
-            <div className="mb-4">
-              <h3 className="text-sm font-bold text-slate-855 dark:text-white">Correlation: Attendance vs Internal Marks</h3>
-              <p className="text-[11px] text-slate-400">Maps students individually to trace how attendance and grades dictate prediction thresholds.</p>
+          <div className="glass-card lg:col-span-2 flex flex-col min-h-[400px]">
+            <div className="mb-6">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Correlation: Attendance vs Internal Marks</h3>
+              <p className="text-sm text-slate-500 mt-1">Maps students individually to trace how attendance and grades dictate prediction thresholds.</p>
             </div>
             {loading ? (
-              <div className="h-72 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl"></div>
+              <div className="flex-1 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl w-full"></div>
             ) : (
-              <Scatter data={scatterData} options={scatterOptions} />
+              <div className="flex-1 relative w-full h-[300px]">
+                <Scatter data={scatterData} options={{...scatterOptions, maintainAspectRatio: false}} />
+              </div>
             )}
-          </GlassCard>
+          </div>
 
           {/* Study hours splits */}
-          <GlassCard className="flex flex-col justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-855 dark:text-white mb-1">Study Hours Segmentation</h3>
-              <p className="text-[11px] text-slate-400">Splits counts of students based on daily self-study dedication ranges.</p>
+          <div className="glass-card flex flex-col justify-between min-h-[400px]">
+            <div className="mb-6">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Study Hours Segmentation</h3>
+              <p className="text-sm text-slate-500 mt-1">Daily self-study dedication ranges.</p>
             </div>
             {loading ? (
-              <div className="h-44 w-44 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse mx-auto"></div>
+              <div className="flex-1 rounded-full bg-slate-100 dark:bg-slate-800 animate-pulse w-48 h-48 mx-auto"></div>
             ) : (
-              <div className="h-[180px] w-[180px] mx-auto flex items-center justify-center my-6">
-                <Doughnut data={doughnutData} options={{ borderWidth: 0, plugins: { legend: { display: false } } }} />
+              <div className="relative flex-1 w-full flex items-center justify-center">
+                <Doughnut data={doughnutData} options={{ cutout: '75%', maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
               </div>
             )}
-            <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold border-t border-slate-100 dark:border-slate-800/30 pt-3 mt-4 shrink-0">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold border-t border-slate-100 dark:border-slate-800/50 pt-4 mt-6 shrink-0">
               <div className="text-rose-500">
-                <p className="text-sm">{studyRanges['Low (<3 hrs)']}</p>
-                <p className="text-[9px] text-slate-450 mt-0.5">&lt; 3 Hours</p>
+                <p className="text-base font-bold">{studyRanges['Low (<3 hrs)']}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">&lt; 3 Hours</p>
               </div>
               <div className="text-sky-500">
-                <p className="text-sm">{studyRanges['Medium (3-5 hrs)']}</p>
-                <p className="text-[9px] text-slate-450 mt-0.5">3-5 Hours</p>
+                <p className="text-base font-bold">{studyRanges['Medium (3-5 hrs)']}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">3-5 Hours</p>
               </div>
               <div className="text-emerald-500">
-                <p className="text-sm">{studyRanges['High (>5 hrs)']}</p>
-                <p className="text-[9px] text-slate-450 mt-0.5">&gt; 5 Hours</p>
+                <p className="text-base font-bold">{studyRanges['High (>5 hrs)']}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">&gt; 5 Hours</p>
               </div>
             </div>
-          </GlassCard>
+          </div>
         </div>
 
         {/* Backlogs per semester */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <GlassCard className="lg:col-span-2">
-            <div className="mb-4">
-              <h3 className="text-sm font-bold text-slate-855 dark:text-white">Active Backlogs Distribution by Semester</h3>
-              <p className="text-[11px] text-slate-400 font-medium">Aggregated counts of uncleared subjects grouped per semester.</p>
+          <div className="glass-card lg:col-span-2 flex flex-col min-h-[400px]">
+            <div className="mb-6">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Active Backlogs Distribution</h3>
+              <p className="text-sm text-slate-500 mt-1">Aggregated counts of uncleared subjects grouped per semester.</p>
             </div>
             {loading ? (
-              <div className="h-60 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl"></div>
+              <div className="flex-1 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl w-full"></div>
             ) : (
-              <Bar data={barData} options={barOptions} />
+              <div className="flex-1 relative w-full h-[300px]">
+                <Bar data={barData} options={{...barOptions, maintainAspectRatio: false}} />
+              </div>
             )}
-          </GlassCard>
+          </div>
 
-          <GlassCard className="flex flex-col justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-855 dark:text-white mb-2">Predictive Risk Analysis</h3>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                The Random Forest analysis maps **Attendance Percentage** and **Internal Marks** as the highest weighted features determining final outcomes.
+          <div className="glass-card flex flex-col justify-between min-h-[400px]">
+            <div className="mb-6">
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">Predictive Risk Analysis</h3>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                The Random Forest analysis maps Attendance Percentage and Internal Marks as the highest weighted features determining final outcomes.
               </p>
             </div>
-            <div className="space-y-3.5 mt-4 shrink-0">
-              <div className="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/15 flex items-start space-x-3 text-[11px]">
+            <div className="space-y-4 mt-6 shrink-0">
+              <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 dark:bg-rose-500/10 dark:border-rose-500/20 flex items-start space-x-3 text-sm">
                 <span className="shrink-0 text-lg">⚠️</span>
                 <p className="leading-relaxed text-rose-700 dark:text-rose-300">
-                  **Risk Warning:** Students falling under 75% attendance show a **91% higher frequency** of predictions ending in Fail labels.
+                  <strong className="font-semibold">Risk Warning:</strong> Students falling under 75% attendance show a 91% higher frequency of predictions ending in Fail labels.
                 </p>
               </div>
-              <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/15 flex items-start space-x-3 text-[11px]">
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20 flex items-start space-x-3 text-sm">
                 <span className="shrink-0 text-lg">💡</span>
                 <p className="leading-relaxed text-emerald-700 dark:text-emerald-300">
-                  **Recommendation:** Boosting study hours from 2 to 4 hours Daily increases borderline student survival rates by **74.5%**.
+                  <strong className="font-semibold">Recommendation:</strong> Boosting study hours from 2 to 4 hours Daily increases borderline student survival rates by 74.5%.
                 </p>
               </div>
             </div>
-          </GlassCard>
+          </div>
         </div>
 
       </main>
