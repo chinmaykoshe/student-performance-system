@@ -1,0 +1,246 @@
+import React, { useState } from 'react';
+import { useAuth, api } from '../context/AuthContext';
+import Header from '../components/Header';
+import { PageShell, PrimaryButton } from '../components/AdminUI';
+import { User, Mail, Shield, Save, Lock, AlertCircle, CheckCircle2 } from 'lucide-react';
+
+const Profile = () => {
+  const { user, profile } = useAuth();
+  
+  // Profile Form State
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    role: user?.role || ''
+  });
+
+  // Password Reset State
+  const [passForm, setPassForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passStatus, setPassStatus] = useState({ type: '', message: '' });
+  const [isUpdatingPass, setIsUpdatingPass] = useState(false);
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.split(' ');
+    return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : name.slice(0, 2).toUpperCase();
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePassChange = (e) => {
+    const { name, value } = e.target;
+    setPassForm(prev => ({ ...prev, [name]: value }));
+    setPassStatus({ type: '', message: '' }); // Clear message on type
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    alert('Profile update functionality will be integrated with the backend shortly.');
+  };
+
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    
+    if (passForm.newPassword !== passForm.confirmPassword) {
+      setPassStatus({ type: 'error', message: 'New passwords do not match.' });
+      return;
+    }
+    
+    if (passForm.newPassword.length < 5) {
+      setPassStatus({ type: 'error', message: 'Password must be at least 5 characters.' });
+      return;
+    }
+
+    try {
+      setIsUpdatingPass(true);
+      const res = await api.put('/auth/update-password', {
+        currentPassword: passForm.currentPassword,
+        newPassword: passForm.newPassword
+      });
+      
+      if (res.data.success) {
+        setPassStatus({ type: 'success', message: 'Password updated successfully!' });
+        setPassForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      }
+    } catch (err) {
+      setPassStatus({ 
+        type: 'error', 
+        message: err.response?.data?.error || 'Failed to update password. Please check your current password.' 
+      });
+    } finally {
+      setIsUpdatingPass(false);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
+      <Header title="My Profile" />
+      <PageShell>
+        <div className="max-w-3xl mx-auto w-full space-y-6">
+          
+          {/* Profile Card */}
+          <div className="glass-card p-8 rounded-3xl border border-slate-200 shadow-sm bg-white">
+            <div className="flex items-center space-x-6">
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white shadow-lg shadow-brand-500/35 text-3xl font-bold">
+                {getInitials(user?.name)}
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">{user?.name}</h2>
+                <p className="text-slate-500 capitalize flex items-center gap-2 mt-1">
+                  <Shield size={16} /> {user?.role} Account
+                </p>
+                {profile?.department && (
+                  <p className="text-slate-500 flex items-center gap-2 mt-1">
+                    <User size={16} /> {profile.department}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Edit Profile Form */}
+          <div className="glass-card p-8 rounded-3xl border border-slate-200 shadow-sm bg-white">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">Personal Information</h3>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <label className="space-y-2 text-sm font-semibold text-slate-600">
+                  <span>Full Name</span>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
+                      <User size={18} />
+                    </div>
+                    <input 
+                      type="text" 
+                      name="name" 
+                      value={formData.name} 
+                      onChange={handleChange} 
+                      className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                      required 
+                    />
+                  </div>
+                </label>
+
+                <label className="space-y-2 text-sm font-semibold text-slate-600">
+                  <span>Email Address</span>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
+                      <Mail size={18} />
+                    </div>
+                    <input 
+                      type="email" 
+                      name="email" 
+                      value={formData.email} 
+                      onChange={handleChange} 
+                      className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                      required 
+                      disabled // Email changes usually require verification
+                    />
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <PrimaryButton type="submit">
+                  <Save size={18} />
+                  <span>Save Changes</span>
+                </PrimaryButton>
+              </div>
+            </form>
+          </div>
+
+          {/* Change Password Section */}
+          <div className="glass-card p-8 rounded-3xl border border-slate-200 shadow-sm bg-white">
+            <h3 className="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">Security & Password</h3>
+            
+            {passStatus.message && (
+              <div className={`mb-6 flex items-center space-x-3 p-4 rounded-xl text-sm border ${
+                passStatus.type === 'error' 
+                  ? 'bg-rose-50 text-rose-600 border-rose-200' 
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}>
+                {passStatus.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+                <span>{passStatus.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handlePasswordUpdate} className="space-y-6 max-w-md">
+              <label className="space-y-2 text-sm font-semibold text-slate-600 block">
+                <span>Current Password</span>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    type="password" 
+                    name="currentPassword" 
+                    value={passForm.currentPassword} 
+                    onChange={handlePassChange} 
+                    className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                    placeholder="Enter your current password"
+                    required 
+                  />
+                </div>
+              </label>
+
+              <label className="space-y-2 text-sm font-semibold text-slate-600 block">
+                <span>New Password</span>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    type="password" 
+                    name="newPassword" 
+                    value={passForm.newPassword} 
+                    onChange={handlePassChange} 
+                    className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                    placeholder="Create a new password"
+                    required 
+                  />
+                </div>
+              </label>
+
+              <label className="space-y-2 text-sm font-semibold text-slate-600 block">
+                <span>Confirm New Password</span>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
+                    <Lock size={18} />
+                  </div>
+                  <input 
+                    type="password" 
+                    name="confirmPassword" 
+                    value={passForm.confirmPassword} 
+                    onChange={handlePassChange} 
+                    className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                    placeholder="Confirm your new password"
+                    required 
+                  />
+                </div>
+              </label>
+
+              <div className="pt-2">
+                <button 
+                  type="submit" 
+                  disabled={isUpdatingPass}
+                  className="px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-sm font-bold shadow-md shadow-slate-200 transition-all disabled:opacity-50 w-full md:w-auto"
+                >
+                  {isUpdatingPass ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+
+        </div>
+      </PageShell>
+    </div>
+  );
+};
+
+export default Profile;
