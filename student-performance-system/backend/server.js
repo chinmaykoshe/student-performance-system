@@ -15,10 +15,13 @@ const studentRoutes = require('./routes/studentRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const systemRoutes = require('./routes/systemRoutes');
 const assessmentRoutes = require('./routes/assessmentRoutes');
+const assessmentTemplateRoutes = require('./routes/assessmentTemplateRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const resumeRoutes = require('./routes/resumeRoutes');
 const workspaceRoutes = require('./routes/workspaceRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const academicRoutes = require('./routes/academicRoutes');
+const facultyRoutes = require('./routes/facultyRoutes');
 
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -29,32 +32,6 @@ const app = express();
 // ─── Security & Logging Middleware ───────────────────────────────────────────
 app.use(helmet());
 
-// Log HTTP requests in dev/prod
-if (process.env.NODE_ENV === 'production') {
-  app.use(morgan('combined'));
-} else {
-  app.use(morgan('dev'));
-}
-
-// Rate Limiting (prevent DOS / brute-force)
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Limit each IP to 500 requests per window
-  message: { success: false, error: 'Too many requests from this IP, please try again after 15 minutes.' }
-});
-app.use('/api', apiLimiter);
-
-// Specific stricter limiter for authentication endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 40, // Limit login/register attempts
-  message: { success: false, error: 'Too many login attempts. Please try again after 15 minutes.' }
-});
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/register', authLimiter);
-
-// Middlewares
-app.use(express.json());
 const defaultClientOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173'
@@ -77,6 +54,33 @@ const corsOptions = {
   credentials: true
 };
 app.use(cors(corsOptions));
+
+// Log HTTP requests in dev/prod
+if (process.env.NODE_ENV === 'production') {
+  app.use(morgan('combined'));
+} else {
+  app.use(morgan('dev'));
+}
+
+// Rate Limiting (prevent DOS / brute-force)
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window for dev
+  max: 5000, // 5000 requests per minute
+  message: { success: false, error: 'Too many requests from this IP, please try again later.' }
+});
+app.use('/api', apiLimiter);
+
+// Specific stricter limiter for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Allow 100 logins in dev
+  message: { success: false, error: 'Too many login attempts. Please try again later.' }
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
+// Middlewares
+app.use(express.json());
 app.use(passport.initialize());
 app.use(express.urlencoded({ extended: true }));
 
@@ -86,10 +90,13 @@ app.use('/api/students', studentRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/assessments', assessmentRoutes);
+app.use('/api/assessment-templates', assessmentTemplateRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/workspace', workspaceRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/academic', academicRoutes);
+app.use('/api/faculty', facultyRoutes);
 
 // Health Check Route (used by Render/uptime bots)
 app.get('/api/health', (req, res) => {
@@ -117,16 +124,26 @@ app.use((err, req, res, next) => {
 
 // MongoDB Connection & Seeding
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/student-performance-db';
+const MONGO_URI = process.env.MONGO_ATLAS_URI || process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/student-performance-db';
 
 mongoose
   .connect(MONGO_URI)
   .then(async () => {
     console.log('MongoDB connected successfully.');
-    // User explicitly requested to DELETE WHOLE DATA AND INSERT NEW DATA unconditionally
-    const wipeAndSeed = require('./utils/seeder');
-    await wipeAndSeed();
-    
+
+    // Seeding strategy:
+    // - Default: DO NOT wipe existing data on every start.
+    // - Enable wipe+seed explicitly via SEED_ON_START=true
+    //   (useful for dev, but never for production).
+    const seedOnStart = (process.env.SEED_ON_START || '').toLowerCase() === 'true';
+
+    if (seedOnStart) {
+      const wipeAndSeed = require('./utils/seeder');
+      await wipeAndSeed();
+    } else {
+      console.log('Skipping wipe+seed on startup. Set SEED_ON_START=true to enable.');
+    }
+
     app.listen(PORT, () => {
       console.log(`Backend server running on port ${PORT}`);
     });

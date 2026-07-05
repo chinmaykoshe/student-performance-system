@@ -23,6 +23,17 @@ const Profile = () => {
   const [passStatus, setPassStatus] = useState({ type: '', message: '' });
   const [isUpdatingPass, setIsUpdatingPass] = useState(false);
 
+  // Academic Metrics State (Students Only)
+  const [metricsForm, setMetricsForm] = useState({
+    attendancePercentage: profile?.attendancePercentage || 0,
+    assignmentMarks: profile?.assignmentMarks || 0,
+    internalMarks: profile?.internalMarks || 0,
+    studyHours: profile?.studyHours || 0,
+    previousCGPA: profile?.previousCGPA || 0
+  });
+  const [metricsStatus, setMetricsStatus] = useState({ type: '', message: '' });
+  const [isUpdatingMetrics, setIsUpdatingMetrics] = useState(false);
+
   const getInitials = (name) => {
     if (!name) return 'U';
     const parts = name.split(' ');
@@ -40,9 +51,48 @@ const Profile = () => {
     setPassStatus({ type: '', message: '' }); // Clear message on type
   };
 
-  const handleSubmit = (e) => {
+  const [profileStatus, setProfileStatus] = useState({ type: '', message: '' });
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Profile update functionality will be integrated with the backend shortly.');
+    setIsUpdatingProfile(true);
+    setProfileStatus({ type: '', message: '' });
+    try {
+      const res = await api.put('/auth/update-profile', { name: formData.name });
+      if (res.data?.success) {
+        setProfileStatus({ type: 'success', message: 'Profile name updated successfully!' });
+      }
+    } catch (err) {
+      setProfileStatus({ type: 'error', message: err.response?.data?.error || 'Failed to update profile.' });
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  const handleMetricsChange = (e) => {
+    const { name, value } = e.target;
+    setMetricsForm(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    setMetricsStatus({ type: '', message: '' });
+  };
+
+  const handleMetricsUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      setIsUpdatingMetrics(true);
+      const res = await api.put('/students/my-metrics', metricsForm);
+      if (res.data.success) {
+        setMetricsStatus({ type: 'success', message: 'Academic metrics updated successfully!' });
+        // Optionally refresh profile context here if needed
+      }
+    } catch (err) {
+      setMetricsStatus({ 
+        type: 'error', 
+        message: err.response?.data?.error || 'Failed to update metrics.' 
+      });
+    } finally {
+      setIsUpdatingMetrics(false);
+    }
   };
 
   const handlePasswordUpdate = async (e) => {
@@ -121,7 +171,8 @@ const Profile = () => {
                       name="name" 
                       value={formData.name} 
                       onChange={handleChange} 
-                      className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                      className="glass-input w-full py-3 bg-slate-50 border-slate-200" 
+                      style={{ paddingLeft: '2.75rem' }}
                       required 
                     />
                   </div>
@@ -138,7 +189,8 @@ const Profile = () => {
                       name="email" 
                       value={formData.email} 
                       onChange={handleChange} 
-                      className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                      className="glass-input w-full py-3 bg-slate-50 border-slate-200" 
+                      style={{ paddingLeft: '2.75rem' }}
                       required 
                       disabled // Email changes usually require verification
                     />
@@ -146,14 +198,115 @@ const Profile = () => {
                 </label>
               </div>
 
+              {profileStatus.message && (
+                <div className={`mb-4 flex items-center space-x-3 p-4 rounded-xl text-sm border ${
+                  profileStatus.type === 'error'
+                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}>
+                  {profileStatus.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+                  <span>{profileStatus.message}</span>
+                </div>
+              )}
+
               <div className="flex justify-end pt-4">
-                <PrimaryButton type="submit">
+                <PrimaryButton type="submit" disabled={isUpdatingProfile}>
                   <Save size={18} />
-                  <span>Save Changes</span>
+                  <span>{isUpdatingProfile ? 'Saving...' : 'Save Changes'}</span>
                 </PrimaryButton>
               </div>
             </form>
           </div>
+
+          {/* Academic Metrics Section (Student Only) */}
+          {user?.role === 'student' && (
+            <div className="glass-card p-8 rounded-3xl border border-slate-200 shadow-sm bg-white">
+              <h3 className="text-lg font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">Self-Reported Academic Metrics</h3>
+              
+              {metricsStatus.message && (
+                <div className={`mb-6 flex items-center space-x-3 p-4 rounded-xl text-sm border ${
+                  metricsStatus.type === 'error' 
+                    ? 'bg-rose-50 text-rose-600 border-rose-200' 
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}>
+                  {metricsStatus.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+                  <span>{metricsStatus.message}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleMetricsUpdate} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                  <label className="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Attendance (%)</span>
+                    <input 
+                      type="number" 
+                      name="attendancePercentage" 
+                      value={metricsForm.attendancePercentage} 
+                      onChange={handleMetricsChange} 
+                      className="glass-input w-full py-3 bg-slate-50 border-slate-200 px-4" 
+                      required 
+                      min="0" max="100"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Assignment Marks</span>
+                    <input 
+                      type="number" 
+                      name="assignmentMarks" 
+                      value={metricsForm.assignmentMarks} 
+                      onChange={handleMetricsChange} 
+                      className="glass-input w-full py-3 bg-slate-50 border-slate-200 px-4" 
+                      required 
+                      min="0" max="100"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Internal Marks</span>
+                    <input 
+                      type="number" 
+                      name="internalMarks" 
+                      value={metricsForm.internalMarks} 
+                      onChange={handleMetricsChange} 
+                      className="glass-input w-full py-3 bg-slate-50 border-slate-200 px-4" 
+                      required 
+                      min="0" max="100"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Study Hours/Day</span>
+                    <input 
+                      type="number" 
+                      name="studyHours" 
+                      value={metricsForm.studyHours} 
+                      onChange={handleMetricsChange} 
+                      className="glass-input w-full py-3 bg-slate-50 border-slate-200 px-4" 
+                      required 
+                      min="0" max="24"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm font-semibold text-slate-600">
+                    <span>Previous CGPA</span>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      name="previousCGPA" 
+                      value={metricsForm.previousCGPA} 
+                      onChange={handleMetricsChange} 
+                      className="glass-input w-full py-3 bg-slate-50 border-slate-200 px-4" 
+                      required 
+                      min="0" max="10"
+                    />
+                  </label>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <PrimaryButton type="submit" disabled={isUpdatingMetrics}>
+                    <Save size={18} />
+                    <span>{isUpdatingMetrics ? 'Saving...' : 'Save Metrics'}</span>
+                  </PrimaryButton>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Change Password Section */}
           <div className="glass-card p-8 rounded-3xl border border-slate-200 shadow-sm bg-white">
@@ -182,7 +335,8 @@ const Profile = () => {
                     name="currentPassword" 
                     value={passForm.currentPassword} 
                     onChange={handlePassChange} 
-                    className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                    className="glass-input w-full py-3 bg-slate-50 border-slate-200" 
+                    style={{ paddingLeft: '2.75rem' }}
                     placeholder="Enter your current password"
                     required 
                   />
@@ -200,7 +354,8 @@ const Profile = () => {
                     name="newPassword" 
                     value={passForm.newPassword} 
                     onChange={handlePassChange} 
-                    className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                    className="glass-input w-full py-3 bg-slate-50 border-slate-200" 
+                    style={{ paddingLeft: '2.75rem' }}
                     placeholder="Create a new password"
                     required 
                   />
@@ -218,7 +373,8 @@ const Profile = () => {
                     name="confirmPassword" 
                     value={passForm.confirmPassword} 
                     onChange={handlePassChange} 
-                    className="glass-input w-full pl-11 py-3 bg-slate-50 border-slate-200" 
+                    className="glass-input w-full py-3 bg-slate-50 border-slate-200" 
+                    style={{ paddingLeft: '2.75rem' }}
                     placeholder="Confirm your new password"
                     required 
                   />

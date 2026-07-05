@@ -11,6 +11,13 @@ const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const { createLog } = require('./systemController');
 
+const Department = require('../models/Department');
+const Course = require('../models/Course');
+const AcademicYear = require('../models/AcademicYear');
+const Semester = require('../models/Semester');
+const Subject = require('../models/Subject');
+const MarksRecord = require('../models/MarksRecord');
+
 // @desc    Get all students
 // @route   GET /api/students
 // @access  Private (Admin, Faculty)
@@ -59,6 +66,13 @@ exports.getStudents = async (req, res) => {
       const fields = req.query.select.split(',').join(' ');
       query = query.select(fields);
     }
+
+    // Populate references so frontend gets readable values
+    query = query
+      .populate('department', 'name code')
+      .populate('course', 'name code')
+      .populate('semester', 'name number')
+      .populate('academicYear', 'year');
 
     // Sort
     if (req.query.sort) {
@@ -112,7 +126,13 @@ exports.getStudents = async (req, res) => {
 // @access  Private
 exports.getStudent = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id).populate('assignedFaculty', 'name email');
+    const student = await Student.findById(req.params.id)
+      .populate('department', 'name code')
+      .populate('course', 'name code')
+      .populate('academicYear', 'year')
+      .populate('semester', 'name number')
+      .populate('enrolledSubjects', 'name code type credits maxTotalMarks')
+      .populate('assignedFaculty', 'name email');
 
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
@@ -129,6 +149,47 @@ exports.getStudent = async (req, res) => {
   }
 };
 
+// @desc    Update current student metrics
+// @route   PUT /api/students/my-metrics
+// @access  Private (Student)
+exports.updateMyMetrics = async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ success: false, error: 'Only students can update their own metrics' });
+    }
+
+    const { attendancePercentage, assignmentMarks, internalMarks, studyHours, previousCGPA } = req.body;
+    
+    // Find the student profile linked to this user email
+    let student = await Student.findOne({ email: req.user.email });
+    if (!student) {
+      return res.status(404).json({ success: false, error: 'Student profile not found' });
+    }
+
+    // Update only allowed fields
+    if (attendancePercentage !== undefined) student.attendancePercentage = attendancePercentage;
+    if (assignmentMarks !== undefined) student.assignmentMarks = assignmentMarks;
+    if (internalMarks !== undefined) student.internalMarks = internalMarks;
+    if (studyHours !== undefined) student.studyHours = studyHours;
+    if (previousCGPA !== undefined) student.previousCGPA = previousCGPA;
+
+    // Recalculate AI performance predictions automatically based on updated metrics
+    const predictionResult = await predictStudentPerformance(student);
+    student.prediction = {
+      result: predictionResult.result,
+      confidence: predictionResult.confidence,
+      suggestions: predictionResult.suggestions,
+      predictedAt: new Date()
+    };
+
+    await student.save();
+
+    res.status(200).json({ success: true, data: student });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // @desc    Create student
 // @route   POST /api/students
 // @access  Private (Admin)
@@ -138,8 +199,12 @@ exports.createStudent = async (req, res) => {
       rollNumber,
       name,
       email,
-      department,
-      semester,
+      department,   // ObjectId string
+      course,       // ObjectId string
+      academicYear, // ObjectId string
+      semester,     // ObjectId string
+      division,
+      enrolledSubjects,
       attendancePercentage,
       assignmentMarks,
       internalMarks,
@@ -164,7 +229,7 @@ exports.createStudent = async (req, res) => {
     user = await User.create({
       name,
       email,
-      password: `${email.toLowerCase()}@123`, // Default password is email@123 (lowercase)
+      password: `${email.toLowerCase()}@123`,
       role: 'student'
     });
 
@@ -174,13 +239,17 @@ exports.createStudent = async (req, res) => {
       name,
       email,
       department,
+      course,
+      academicYear,
       semester,
-      attendancePercentage,
-      assignmentMarks,
-      internalMarks,
-      previousCGPA,
-      studyHours,
-      backlogs
+      division: division || 'A',
+      enrolledSubjects: enrolledSubjects || [],
+      attendancePercentage: attendancePercentage || 0,
+      assignmentMarks: assignmentMarks || 0,
+      internalMarks: internalMarks || 0,
+      previousCGPA: previousCGPA || 0,
+      studyHours: studyHours || 0,
+      backlogs: backlogs || 0
     });
 
     // Generate ML prediction
@@ -193,7 +262,6 @@ exports.createStudent = async (req, res) => {
     };
     await student.save();
 
-    // Trigger email alerts asynchronously
     if (student.attendancePercentage < 75.0) {
       sendLowAttendanceAlert(student);
       createLog('EMAIL_ALERT', 'system', `Sent low attendance alert to ${student.name} (${student.email})`);
@@ -205,6 +273,78 @@ exports.createStudent = async (req, res) => {
     sendPredictionNotification(student);
 
     createLog('STUDENT_CREATE', req.user.email, `Created student record for ${student.name} (${student.rollNumber})`);
+
+    res.status(201).json({ success: true, data: student });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Self-setup student profile (for newly registered / OAuth students)
+// @route   POST /api/students/setup
+// @access  Private (Student)
+exports.setupProfile = async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ success: false, error: 'Only students can set up their profile' });
+    }
+
+    const {
+      rollNumber,
+      department,
+      course,
+      academicYear,
+      semester,
+      division,
+      attendancePercentage,
+      assignmentMarks,
+      internalMarks,
+      previousCGPA,
+      studyHours,
+      backlogs
+    } = req.body;
+
+    const email = req.user.email;
+    const name = req.user.name || 'Student';
+
+    let existingProfile = await Student.findOne({ email });
+    if (existingProfile) {
+      return res.status(400).json({ success: false, error: 'Student profile already exists for this account' });
+    }
+
+    let existingRoll = await Student.findOne({ rollNumber: rollNumber.toUpperCase() });
+    if (existingRoll) {
+      return res.status(400).json({ success: false, error: 'Student with this roll number already exists' });
+    }
+
+    const student = await Student.create({
+      rollNumber,
+      name,
+      email,
+      department,
+      course,
+      academicYear,
+      semester,
+      division: division || 'A',
+      enrolledSubjects: [],
+      attendancePercentage: attendancePercentage || 0,
+      assignmentMarks: assignmentMarks || 0,
+      internalMarks: internalMarks || 0,
+      previousCGPA: previousCGPA || 0,
+      studyHours: studyHours || 0,
+      backlogs: backlogs || 0
+    });
+
+    const predictionResult = await predictStudentPerformance(student);
+    student.prediction = {
+      result: predictionResult.result,
+      confidence: predictionResult.confidence,
+      suggestions: predictionResult.suggestions,
+      predictedAt: new Date()
+    };
+    await student.save();
+
+    createLog('STUDENT_SETUP', req.user.email, `Student completed their own profile setup (${student.rollNumber})`);
 
     res.status(201).json({ success: true, data: student });
   } catch (err) {
@@ -407,24 +547,50 @@ exports.importStudents = async (req, res) => {
         let student = await Student.findOne({ rollNumber: rollNumber.toUpperCase() });
         let user = await User.findOne({ email });
 
+        // Dynamically resolve references
+        let deptDoc = await Department.findOne({
+          $or: [
+            { name: { $regex: new RegExp('^' + department.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '$', 'i') } },
+            { code: { $regex: new RegExp('^' + department.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + '$', 'i') } }
+          ]
+        });
+        if (!deptDoc) deptDoc = await Department.findOne({});
+
+        let courseDoc = await Course.findOne({ department: deptDoc?._id });
+        if (!courseDoc) courseDoc = await Course.findOne({});
+
+        let yearDoc = await AcademicYear.findOne({ isCurrent: true });
+        if (!yearDoc) yearDoc = await AcademicYear.findOne({});
+
+        let semDoc = await Semester.findOne({ 
+          course: courseDoc?._id,
+          number: semester
+        });
+        if (!semDoc) {
+          semDoc = await Semester.findOne({ course: courseDoc?._id }) || await Semester.findOne({});
+        }
+
         if (!student) {
           if (!user) {
             // Create user
             user = await User.create({
               name,
               email,
-              password: `${email.toLowerCase()}@123`, // Default password is email@123 (lowercase)
+              password: `${email.toLowerCase()}@123`,
               role: 'student'
             });
           }
 
-          // Create student
+          // Create student with resolved ObjectIds
           student = new Student({
             rollNumber,
             name,
             email,
-            department,
-            semester,
+            department: deptDoc?._id,
+            course: courseDoc?._id,
+            academicYear: yearDoc?._id,
+            semester: semDoc?._id,
+            division: 'A',
             attendancePercentage,
             assignmentMarks,
             internalMarks,
@@ -433,11 +599,13 @@ exports.importStudents = async (req, res) => {
             backlogs
           });
         } else {
-          // Update existing student
+          // Update existing student with resolved ObjectIds
           student.name = name;
           student.email = email;
-          student.department = department;
-          student.semester = semester;
+          student.department = deptDoc?._id;
+          student.course = courseDoc?._id;
+          student.academicYear = yearDoc?._id;
+          student.semester = semDoc?._id;
           student.attendancePercentage = attendancePercentage;
           student.assignmentMarks = assignmentMarks;
           student.internalMarks = internalMarks;
@@ -504,7 +672,9 @@ exports.exportExcel = async (req, res) => {
       }
     }
 
-    const students = await Student.find(queryObj);
+    const students = await Student.find(queryObj)
+      .populate('department', 'name')
+      .populate('semester', 'name');
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Student Performance Report');
@@ -515,7 +685,7 @@ exports.exportExcel = async (req, res) => {
       { header: 'Name', key: 'name', width: 25 },
       { header: 'Email', key: 'email', width: 30 },
       { header: 'Department', key: 'department', width: 25 },
-      { header: 'Semester', key: 'semester', width: 10 },
+      { header: 'Semester', key: 'semester', width: 15 },
       { header: 'Attendance %', key: 'attendancePercentage', width: 15 },
       { header: 'Assignment Marks', key: 'assignmentMarks', width: 18 },
       { header: 'Internal Marks', key: 'internalMarks', width: 15 },
@@ -540,8 +710,8 @@ exports.exportExcel = async (req, res) => {
         rollNumber: student.rollNumber,
         name: student.name,
         email: student.email,
-        department: student.department,
-        semester: student.semester,
+        department: student.department?.name || student.department || '—',
+        semester: student.semester?.name || student.semester || '—',
         attendancePercentage: student.attendancePercentage,
         assignmentMarks: student.assignmentMarks,
         internalMarks: student.internalMarks,
@@ -574,7 +744,11 @@ exports.exportExcel = async (req, res) => {
 // @access  Private
 exports.exportPDF = async (req, res) => {
   try {
-    const student = await Student.findById(req.params.id);
+    const student = await Student.findById(req.params.id)
+      .populate('department', 'name code')
+      .populate('course', 'name code')
+      .populate('semester', 'name number')
+      .populate('academicYear', 'year');
 
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student not found' });
@@ -585,103 +759,210 @@ exports.exportPDF = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Not authorized to download other student reports' });
     }
 
+    // Determine target semester number
+    const semNumber = parseInt(req.query.semester) || (student.semester ? student.semester.number : 1);
+
+    // Validate that student is not trying to access future semesters
+    if (student.semester && semNumber > student.semester.number) {
+      return res.status(400).json({ success: false, error: 'Report card not available for future semesters.' });
+    }
+
+    // Fetch all subjects for this course and semester
+    const subjects = await Subject.find({ course: student.course._id, semesterNumber: semNumber });
+    if (!subjects || subjects.length === 0) {
+      return res.status(400).json({ success: false, error: 'No subjects registered for this semester yet.' });
+    }
+
+    // Fetch marks records for this student and subjects
+    const subjectIds = subjects.map(s => s._id);
+    const marksRecords = await MarksRecord.find({
+      student: student._id,
+      subject: { $in: subjectIds }
+    }).populate('subject');
+
+    if (!marksRecords || marksRecords.length === 0) {
+      return res.status(400).json({ success: false, error: 'No marks records found for this semester yet.' });
+    }
+
+    // Get semester name
+    const semesterDoc = await Semester.findOne({
+      number: semNumber,
+      course: student.course._id,
+      academicYear: student.academicYear._id
+    });
+    const semesterName = semesterDoc ? semesterDoc.name : `Semester ${semNumber}`;
+
+    // Compile marks data per subject
+    const subjectMarks = subjects.map(sub => {
+      // Find internal & external records
+      const internalRec = marksRecords.find(r => r.subject._id.toString() === sub._id.toString() && r.assessmentType === 'Internal 1');
+      const externalRec = marksRecords.find(r => r.subject._id.toString() === sub._id.toString() && r.assessmentType === 'End Semester');
+
+      const internalObtained = internalRec ? internalRec.marksObtained : 0;
+      const externalObtained = externalRec ? externalRec.marksObtained : 0;
+
+      const totalObtained = internalObtained + externalObtained;
+      const maxTotal = sub.maxTotalMarks || 100;
+      const pct = (totalObtained / maxTotal) * 100;
+
+      // Grade logic
+      let grade = 'F';
+      if (pct >= 90) grade = 'O';
+      else if (pct >= 80) grade = 'A+';
+      else if (pct >= 70) grade = 'A';
+      else if (pct >= 60) grade = 'B+';
+      else if (pct >= 50) grade = 'B';
+      else if (pct >= 40) grade = 'C';
+
+      const status = pct >= 40 ? 'Pass' : 'Fail';
+
+      return {
+        code: sub.code,
+        name: sub.name,
+        credits: sub.credits,
+        internalObtained,
+        maxInternal: sub.maxInternalMarks || 40,
+        externalObtained,
+        maxExternal: sub.maxExternalMarks || 60,
+        totalObtained,
+        maxTotal,
+        grade,
+        status
+      };
+    });
+
+    // Calculate overall statistics
+    const totalCredits = subjectMarks.reduce((sum, s) => sum + s.credits, 0);
+    const totalObtainedMarks = subjectMarks.reduce((sum, s) => sum + s.totalObtained, 0);
+    const totalMaxMarks = subjectMarks.reduce((sum, s) => sum + s.maxTotal, 0);
+    const overallPercentage = totalMaxMarks > 0 ? ((totalObtainedMarks / totalMaxMarks) * 100).toFixed(2) : '0.00';
+    const isOverallPass = subjectMarks.every(s => s.status === 'Pass');
+
+    // Create PDF Document
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=Report_Card_${student.rollNumber}.pdf`
+      `attachment; filename=Marksheet_Sem${semNumber}_${student.rollNumber}.pdf`
     );
 
     doc.pipe(res);
 
-    // Document styling
-    // Primary header box
-    doc
-      .rect(0, 0, 595, 120)
-      .fill('#1e3a8a'); // Deep Dark Navy Blue
+    // Decorative Header Banner
+    doc.rect(0, 0, 595, 110).fill('#0f172a'); // Slate-900 Theme
 
+    // Banner Text
     doc.fillColor('#ffffff');
-    doc.fontSize(20).text('ACADEMIC PERFORMANCE REPORT CARD', 50, 40, { align: 'center', bold: true });
-    doc.fontSize(11).text('Cloud-Based Student Performance Prediction System', 50, 70, { align: 'center' });
+    doc.fontSize(22).font('Helvetica-Bold').text('ACADEMIC MARKSHEET / TRANSCRIPT', 50, 35, { align: 'center' });
+    doc.fontSize(10).font('Helvetica').text('Cloud-Based Student Performance Prediction System', 50, 65, { align: 'center' });
+    doc.fontSize(9).fillColor('#94a3b8').text('OFFICIAL INSTITUTE RECORD', 50, 80, { align: 'center' });
 
-    // Section 1: Student Information
-    doc.fillColor('#000000').fontSize(14).text('STUDENT PROFILE', 50, 150, { underline: true });
-    doc.fontSize(11);
+    // Profile Box Layout
+    doc.fillColor('#1e293b');
+    doc.fontSize(12).font('Helvetica-Bold').text('STUDENT PROFILE', 50, 135, { underline: true });
     
-    // Details layout in 2 columns
-    doc.text(`Roll Number: ${student.rollNumber}`, 50, 180);
-    doc.text(`Name: ${student.name}`, 50, 200);
-    doc.text(`Email: ${student.email}`, 50, 220);
-
-    doc.text(`Department: ${student.department}`, 320, 180);
-    doc.text(`Semester: ${student.semester}`, 320, 200);
-    doc.text(`Current Date: ${new Date().toLocaleDateString()}`, 320, 220);
-
-    // Divider
-    doc.moveTo(50, 250).lineTo(545, 250).stroke('#e5e7eb');
-
-    // Section 2: Academic Statistics Table
-    doc.fontSize(14).text('ACADEMIC STANDING', 50, 270, { underline: true });
+    doc.fontSize(10).font('Helvetica');
+    // 2-Column Info Grid
+    const col1X = 50;
+    const col2X = 320;
     
-    // Draw table
-    const tableTop = 300;
-    doc.rect(50, tableTop, 495, 20).fill('#f3f4f6');
-    doc.fillColor('#000000').fontSize(10);
-    doc.text('Academic Metrics', 60, tableTop + 5);
-    doc.text('Values Obtained', 300, tableTop + 5, { align: 'right', width: 230 });
+    doc.fillColor('#64748b').text('Name:', col1X, 160).fillColor('#1e293b').font('Helvetica-Bold').text(student.name, col1X + 80, 160).font('Helvetica');
+    doc.fillColor('#64748b').text('Roll Number:', col1X, 175).fillColor('#1e293b').font('Helvetica-Bold').text(student.rollNumber, col1X + 80, 175).font('Helvetica');
+    doc.fillColor('#64748b').text('Department:', col1X, 190).fillColor('#1e293b').text(student.department?.name || '—', col1X + 80, 190);
+    doc.fillColor('#64748b').text('Course:', col1X, 205).fillColor('#1e293b').text(student.course?.name || '—', col1X + 80, 205);
 
-    const metrics = [
-      { name: 'Attendance Percentage', val: `${student.attendancePercentage}%` },
-      { name: 'Assignment Marks (out of 100)', val: `${student.assignmentMarks}` },
-      { name: 'Internal Marks (out of 100)', val: `${student.internalMarks}` },
-      { name: 'Previous Semester CGPA', val: `${student.previousCGPA}` },
-      { name: 'Daily Study Hours', val: `${student.studyHours} hrs` },
-      { name: 'Active Backlogs', val: `${student.backlogs}` }
-    ];
+    doc.fillColor('#64748b').text('Academic Year:', col2X, 160).fillColor('#1e293b').text(student.academicYear?.year || '—', col2X + 90, 160);
+    doc.fillColor('#64748b').text('Semester/Term:', col2X, 175).fillColor('#1e293b').font('Helvetica-Bold').text(semesterName, col2X + 90, 175).font('Helvetica');
+    doc.fillColor('#64748b').text('Division:', col2X, 190).fillColor('#1e293b').text(student.division || 'A', col2X + 90, 190);
+    doc.fillColor('#64748b').text('Date of Issue:', col2X, 205).fillColor('#1e293b').text(new Date().toLocaleDateString(), col2X + 90, 205);
 
-    let currentY = tableTop + 20;
-    metrics.forEach((m, index) => {
-      // Draw background row stripes
-      if (index % 2 === 1) {
-        doc.rect(50, currentY, 495, 20).fill('#fafafa');
+    // Divider Line
+    doc.moveTo(50, 225).lineTo(545, 225).stroke('#cbd5e1');
+
+    // Table Header
+    const tableTop = 245;
+    doc.rect(50, tableTop, 495, 25).fill('#334155'); // Slate-700
+    doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold');
+    doc.text('SUBJECT', 60, tableTop + 8);
+    doc.text('INTERNAL', 250, tableTop + 8, { width: 60, align: 'center' });
+    doc.text('EXTERNAL', 315, tableTop + 8, { width: 60, align: 'center' });
+    doc.text('TOTAL', 380, tableTop + 8, { width: 60, align: 'center' });
+    doc.text('GRADE', 445, tableTop + 8, { width: 50, align: 'center' });
+    doc.text('STATUS', 500, tableTop + 8, { width: 40, align: 'center' });
+
+    let currentY = tableTop + 25;
+    doc.font('Helvetica').fontSize(9);
+
+    subjectMarks.forEach((sub, idx) => {
+      // Row Background Stripe
+      if (idx % 2 === 1) {
+        doc.rect(50, currentY, 495, 24).fill('#f8fafc');
+      } else {
+        doc.rect(50, currentY, 495, 24).fill('#ffffff');
       }
-      doc.fillColor('#374151');
-      doc.text(m.name, 60, currentY + 5);
-      doc.text(m.val, 300, currentY + 5, { align: 'right', width: 230 });
-      currentY += 20;
+      
+      doc.fillColor('#0f172a');
+      doc.text(`${sub.name} (${sub.code})`, 60, currentY + 8, { width: 185, height: 12, ellipsis: true });
+      doc.text(`${sub.internalObtained}/${sub.maxInternal}`, 250, currentY + 8, { width: 60, align: 'center' });
+      doc.text(`${sub.externalObtained}/${sub.maxExternal}`, 315, currentY + 8, { width: 60, align: 'center' });
+      doc.text(`${sub.totalObtained}/${sub.maxTotal}`, 380, currentY + 8, { width: 60, align: 'center' });
+      
+      // Highlight Grade
+      doc.font('Helvetica-Bold');
+      doc.text(sub.grade, 445, currentY + 8, { width: 50, align: 'center' });
+      
+      // Pass/Fail Color Status
+      if (sub.status === 'Pass') {
+        doc.fillColor('#15803d');
+      } else {
+        doc.fillColor('#b91c1c');
+      }
+      doc.text(sub.status, 500, currentY + 8, { width: 40, align: 'center' });
+      doc.font('Helvetica'); // Reset font
+
+      currentY += 24;
     });
 
-    // Divider
-    doc.moveTo(50, currentY + 15).lineTo(545, currentY + 15).stroke('#e5e7eb');
+    // Outer Border Box for Table
+    doc.rect(50, tableTop, 495, currentY - tableTop).stroke('#cbd5e1');
 
-    // Section 3: Performance Prediction & ML Insights
-    const predictionY = currentY + 30;
-    doc.fillColor('#000000').fontSize(14).text('AI-POWERED PERFORMANCE PREDICTION', 50, predictionY, { underline: true });
+    // Summary Section
+    const summaryY = currentY + 25;
+    doc.rect(50, summaryY, 495, 75).fill('#f1f5f9');
+    doc.rect(50, summaryY, 495, 75).stroke('#cbd5e1');
 
-    // Drawing a badge for Pass/Fail
-    const resultBoxColor = student.prediction.result === 'Pass' ? '#dcfce7' : '#fee2e2';
-    const resultTextColor = student.prediction.result === 'Pass' ? '#15803d' : '#b91c1c';
-    
-    doc.rect(50, predictionY + 25, 495, 60).fill(resultBoxColor);
-    
-    doc.fillColor(resultTextColor).fontSize(14).text(`PREDICTED OUTCOME: ${student.prediction.result.toUpperCase()}`, 70, predictionY + 35, { bold: true });
-    doc.fontSize(10).fillColor('#374151').text(`AI Confidence Level: ${student.prediction.confidence}% | Analyzed on: ${student.prediction.predictedAt ? new Date(student.prediction.predictedAt).toLocaleDateString() : new Date().toLocaleDateString()}`, 70, predictionY + 58);
+    doc.fillColor('#1e293b').fontSize(10).font('Helvetica-Bold').text('ACADEMIC SUMMARY', 65, summaryY + 12);
+    doc.font('Helvetica').fontSize(9);
 
-    // Section 4: Actionable Recommendations
-    const recY = predictionY + 105;
-    doc.fillColor('#000000').fontSize(14).text('ACTIONABLE RECOMMENDATIONS', 50, recY, { underline: true });
-    
-    doc.fontSize(10).fillColor('#4b5563');
-    let suggestionY = recY + 25;
-    
-    student.prediction.suggestions.forEach(sug => {
-      doc.text(`•  ${sug}`, 60, suggestionY, { width: 475 });
-      suggestionY += doc.heightOfString(`•  ${sug}`, { width: 475 }) + 5;
-    });
+    doc.text(`Total Subjects: ${subjects.length}`, 65, summaryY + 32);
+    doc.text(`Total Earned Credits: ${totalCredits}`, 65, summaryY + 48);
 
-    // Footer info
-    doc.fontSize(8).fillColor('#9ca3af').text('Disclaimer: This is an AI-generated analysis based on Random Forest Machine Learning classifier patterns. Actual academic performance depends on exams and standard university guidelines.', 50, 740, { align: 'center', width: 495 });
+    doc.text(`Marks Obtained: ${totalObtainedMarks} / ${totalMaxMarks}`, 230, summaryY + 32);
+    doc.text(`Percentage: ${overallPercentage}%`, 230, summaryY + 48);
+
+    doc.text('Overall Status:', 400, summaryY + 32);
+    doc.font('Helvetica-Bold');
+    if (isOverallPass) {
+      doc.fillColor('#15803d').text('PASS', 475, summaryY + 32);
+    } else {
+      doc.fillColor('#b91c1c').text('FAIL', 475, summaryY + 32);
+    }
+
+    doc.fillColor('#1e293b');
+    doc.text(`Attendance: ${student.attendancePercentage}%`, 400, summaryY + 48);
+
+    // Signatures
+    const sigY = summaryY + 140;
+    doc.moveTo(70, sigY).lineTo(200, sigY).stroke('#94a3b8');
+    doc.moveTo(390, sigY).lineTo(520, sigY).stroke('#94a3b8');
+    
+    doc.fillColor('#64748b').font('Helvetica').fontSize(9);
+    doc.text('Signature of Class Coordinator', 70, sigY + 5, { align: 'center', width: 130 });
+    doc.text('Signature of Controller of Exams', 390, sigY + 5, { align: 'center', width: 130 });
+
+    // Verification Footer
+    doc.fontSize(8).fillColor('#94a3b8').text('This is an official document generated by the Student Performance Prediction & Management System.', 50, 750, { align: 'center', width: 495 });
 
     doc.end();
   } catch (err) {

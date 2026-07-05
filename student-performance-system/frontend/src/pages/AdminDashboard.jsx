@@ -92,15 +92,17 @@ const AdminDashboard = () => {
 
       const semGroups = {};
       students.forEach(s => {
-        if (!semGroups[s.semester]) {
-          semGroups[s.semester] = { sum: 0, count: 0 };
+        // semester is now a populated object with .name and .number
+        const semKey = s.semester?.name || s.semester?.number || s.semester || 'Unknown';
+        if (!semGroups[semKey]) {
+          semGroups[semKey] = { sum: 0, count: 0 };
         }
-        semGroups[s.semester].sum += s.previousCGPA;
-        semGroups[s.semester].count++;
+        semGroups[semKey].sum += s.previousCGPA;
+        semGroups[semKey].count++;
       });
 
       const semPerfData = Object.keys(semGroups).map(sem => ({
-        semester: `Sem ${sem}`,
+        semester: sem,
         avgCGPA: (semGroups[sem].sum / semGroups[sem].count).toFixed(2)
       })).sort((a, b) => a.semester.localeCompare(b.semester));
 
@@ -286,7 +288,7 @@ const AdminDashboard = () => {
                            <span className="font-semibold">{student.name}</span>
                          </td>
                          <td className="text-slate-500">{new Date(student.createdAt).toLocaleDateString() || '19 Apr, 2024'}</td>
-                         <td className="text-slate-500">{student.department}</td>
+                         <td className="text-slate-500">{student.department?.name || student.department || '—'}</td>
                          <td>
                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${student.prediction?.result === 'Pass' ? 'bg-[#F3F0EB] text-[#B8A284]' : 'bg-slate-100 text-slate-500'}`}>
                              {student.prediction?.result || 'Completed'}

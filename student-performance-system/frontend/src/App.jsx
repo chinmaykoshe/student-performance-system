@@ -14,6 +14,10 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminStudents from './pages/AdminStudents';
 import AdminFaculty from './pages/AdminFaculty';
 import FacultyDashboard from './pages/FacultyDashboard';
+import FacultyAttendance from './pages/FacultyAttendance';
+import FacultyMarks from './pages/FacultyMarks';
+import FacultyAnalytics from './pages/FacultyAnalytics';
+import FacultyCreateAssessment from './pages/FacultyCreateAssessment';
 import StudentDashboard from './pages/StudentDashboard';
 import Assessment from './pages/Assessment';
 import AICareerCoach from './pages/AICareerCoach';
@@ -23,6 +27,15 @@ import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 import { AdminCalendar, AdminMessages, AdminProjects, AdminTasks, AdminTeam } from './pages/AdminWorkspaces';
 import AICopilot from './components/AICopilot';
+import StudentOnboarding from './pages/StudentOnboarding';
+
+import AdminAcademicSetup from './pages/AdminAcademicSetup';
+import AdminDepartments from './pages/AdminDepartments';
+import AdminCourses from './pages/AdminCourses';
+import AdminSubjects from './pages/AdminSubjects';
+import AdminAcademicYears from './pages/AdminAcademicYears';
+import AdminSemesters from './pages/AdminSemesters';
+import AdminFacultyAllocation from './pages/AdminFacultyAllocation';
 
 import { Menu } from 'lucide-react';
 
@@ -91,6 +104,76 @@ function App() {
             }
           />
           <Route
+            path="/admin/academic-setup"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminAcademicSetup />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/departments"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminDepartments />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/courses"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminCourses />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/subjects"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminSubjects />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/academic-years"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminAcademicYears />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/semesters"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminSemesters />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/faculty-allocation"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout>
+                  <AdminFacultyAllocation />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/analytics"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -151,16 +234,6 @@ function App() {
             }
           />
           <Route
-            path="/admin/messages"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <DashboardLayout>
-                  <AdminMessages />
-                </DashboardLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/admin/team"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
@@ -202,8 +275,53 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/faculty/attendance"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyAttendance />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faculty/marks"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyMarks />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faculty/analytics"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyAnalytics />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/faculty/create-assessment"
+            element={
+              <ProtectedRoute allowedRoles={['faculty']}>
+                <DashboardLayout>
+                  <FacultyCreateAssessment />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
           {/* ── Student Protected Routes ─────────────────────────────── */}
+          <Route path="/student/setup" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentOnboarding />
+            </ProtectedRoute>
+          } />
           <Route
             path="/student"
             element={
@@ -245,10 +363,7 @@ function App() {
             }
           />
 
-          {/* ── Fallbacks ────────────────────────────────────────────── */}
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-          
+          {/* ── Shared Routes (all roles) ─────────────────────────────── */}
           <Route
             path="/profile"
             element={
@@ -269,6 +384,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* ── Fallbacks ────────────────────────────────────────────── */}
+          <Route path="/" element={<RootRedirect />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <AICopilot />
       </Router>

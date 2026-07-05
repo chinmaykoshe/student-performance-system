@@ -40,6 +40,21 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  // Messaging features
+  blockedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  // ERP Features (Phase 1)
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+    default: null
+  },
+  assignedSubjects: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Subject'
+  }],
   createdAt: {
     type: Date,
     default: Date.now

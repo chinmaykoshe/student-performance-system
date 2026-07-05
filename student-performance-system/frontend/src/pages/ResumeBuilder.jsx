@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api, useAuth } from '../context/AuthContext';
 import Header from '../components/Header';
 import GlassCard from '../components/GlassCard';
+import { PageShell } from '../components/AdminUI';
 import { FileText, Download, Briefcase, Rocket, RefreshCw, Plus, Trash2 } from 'lucide-react';
 
 const ResumeBuilder = () => {
@@ -109,11 +110,9 @@ const ResumeBuilder = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Header title="ATS Resume Builder" />
-
-        <main className="flex-1 p-8 max-w-4xl mx-auto w-full space-y-8">
+    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
+      <Header title="ATS Resume Builder" />
+      <PageShell maxWidth="max-w-4xl">
           
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white/40 dark:bg-slate-850 p-6 rounded-3xl border border-white/20 dark:border-slate-800/20">
             <div>
@@ -235,8 +234,7 @@ const ResumeBuilder = () => {
 
           </div>
 
-        </main>
-      </div>
+        </PageShell>
     </div>
   );
 };

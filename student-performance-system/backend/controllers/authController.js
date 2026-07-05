@@ -91,10 +91,13 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      console.log(`[LOGIN FAILED] User not found for email: ${email}`);
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     const isMatch = await user.matchPassword(password);
+    console.log(`[LOGIN MATCH CHECK] Email: ${email} | Input Pass: "${password}" | DB Pass: "${user.password}" | Match: ${isMatch}`);
+    
     if (!isMatch) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
@@ -337,6 +340,32 @@ exports.updatePassword = async (req, res) => {
     await user.save();
 
     res.status(200).json({ success: true, message: 'Password updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// @desc    Update logged-in user's profile (name only for security)
+// @route   PUT /api/auth/update-profile
+// @access  Private
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Name is required.' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name: name.trim() },
+      { new: true, runValidators: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found.' });
+    }
+
+    res.status(200).json({ success: true, message: 'Profile updated successfully.', user });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

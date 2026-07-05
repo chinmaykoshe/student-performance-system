@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../context/AuthContext';
 import Header from '../components/Header';
 import GlassCard from '../components/GlassCard';
+import { PageShell } from '../components/AdminUI';
 import TokenUsageWidget from '../components/TokenUsageWidget';
 import { 
   Sparkles, 
@@ -155,12 +156,11 @@ const AICareerCoach = () => {
   // ─────────────────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Header title="Gemini AI Career Co-Pilot" />
-
-        <main className="flex-1 p-8 max-w-5xl mx-auto w-full space-y-8">
+    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
+      <Header title="Gemini AI Career Co-Pilot" />
+      <PageShell maxWidth="max-w-5xl">
 
           {/* ── Top layout: tabs + token widget ────────────────────────── */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -492,8 +492,7 @@ const AICareerCoach = () => {
             </div>
           )}
 
-        </main>
-      </div>
+        </PageShell>
     </div>
   );
 };

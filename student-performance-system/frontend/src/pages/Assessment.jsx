@@ -1,94 +1,19 @@
-import React, { useState } from 'react';
-import { api } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth, api } from '../context/AuthContext';
 import Header from '../components/Header';
 import GlassCard from '../components/GlassCard';
+import { PageShell } from '../components/AdminUI';
 import { BookOpen, AlertTriangle, CheckCircle, ArrowRight, Award, RefreshCw, BarChart2 } from 'lucide-react';
 
-const categories = {
-  'Programming Fundamentals': [
-    {
-      question: 'Which data structure follows the Last-In, First-Out (LIFO) principle?',
-      options: ['Queue', 'Stack', 'Array', 'Linked List'],
-      correct: 'Stack'
-    },
-    {
-      question: 'What is the time complexity of searching in a balanced Binary Search Tree (BST)?',
-      options: ['O(1)', 'O(n)', 'O(log n)', 'O(n log n)'],
-      correct: 'O(log n)'
-    },
-    {
-      question: 'Which of the following is NOT a fundamental pillar of Object-Oriented Programming (OOP)?',
-      options: ['Abstraction', 'Compilation', 'Inheritance', 'Polymorphism'],
-      correct: 'Compilation'
-    },
-    {
-      question: 'What does the "const" keyword signify in JavaScript?',
-      options: ['A variable that can be re-declared', 'A read-only reference to a value', 'A variable scoped globally only', 'An asynchronous constant block'],
-      correct: 'A read-only reference to a value'
-    },
-    {
-      question: 'Which algorithm is typically used to find the shortest path in a weighted graph?',
-      options: ['Binary Search', 'Dijkstra\'s Algorithm', 'Quick Sort', 'Depth First Search'],
-      correct: 'Dijkstra\'s Algorithm'
-    }
-  ],
-  'Web Development': [
-    {
-      question: 'What does CSS stand for?',
-      options: ['Computer Style Sheets', 'Creative Style System', 'Cascading Style Sheets', 'Complex Style Syntax'],
-      correct: 'Cascading Style Sheets'
-    },
-    {
-      question: 'Which React Hook is primarily used to perform side effects in functional components?',
-      options: ['useState', 'useContext', 'useEffect', 'useReducer'],
-      correct: 'useEffect'
-    },
-    {
-      question: 'Which HTTP method is idempotent and designed to update an existing resource completely?',
-      options: ['POST', 'GET', 'PUT', 'DELETE'],
-      correct: 'PUT'
-    },
-    {
-      question: 'What is the purpose of the "key" prop in React list rendering?',
-      options: ['To style individual list elements', 'To uniquely identify elements and optimize DOM diffing', 'To store secure cryptographic keys', 'To bind click handlers to items'],
-      correct: 'To uniquely identify elements and optimize DOM diffing'
-    },
-    {
-      question: 'Which of the following is a key-value storage mechanism accessible client-side in browsers?',
-      options: ['MongoDB', 'Express Session', 'LocalStorage', 'Mongoose Schema'],
-      correct: 'LocalStorage'
-    }
-  ],
-  'Data Science': [
-    {
-      question: 'Which algorithm is commonly used for classification tasks in machine learning?',
-      options: ['K-Means Clustering', 'Linear Regression', 'Random Forest Classifier', 'Principal Component Analysis'],
-      correct: 'Random Forest Classifier'
-    },
-    {
-      question: 'What metric is used to evaluate the dispersion of values relative to their mean?',
-      options: ['Standard Deviation', 'Median', 'Mode', 'Coefficient of Correlation'],
-      correct: 'Standard Deviation'
-    },
-    {
-      question: 'What is the main purpose of "Data Normalization" before training an ML model?',
-      options: ['To increase database speed', 'To scale numerical features to a uniform range', 'To convert text to numbers', 'To remove null parameters entirely'],
-      correct: 'To scale numerical features to a uniform range'
-    },
-    {
-      question: 'In statistical testing, what does the "p-value" represent?',
-      options: ['Probability score of passing class', 'Probability of obtaining results at least as extreme as observed under null hypothesis', 'Parameters threshold value', 'Prediction confidence level'],
-      correct: 'Probability of obtaining results at least as extreme as observed under null hypothesis'
-    },
-    {
-      question: 'Which of the following libraries is widely used for tabular data manipulation in Python?',
-      options: ['NumPy', 'Matplotlib', 'Pandas', 'Scikit-Learn'],
-      correct: 'Pandas'
-    }
-  ]
-};
+// Dynamic categories from backend will be used instead of static data
 
 const Assessment = () => {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [currentQuiz, setCurrentQuiz] = useState([]);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -97,9 +22,57 @@ const Assessment = () => {
   const [quizResult, setQuizResult] = useState(null);
   const [error, setError] = useState('');
 
-  const startQuiz = (cat) => {
-    setSelectedCategory(cat);
-    setCurrentQuiz(categories[cat]);
+  const [templates, setTemplates] = useState([]);
+  const [fetchingTemplates, setFetchingTemplates] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (profile?._id) {
+        try {
+          const res = await api.get(`/students/${profile._id}`);
+          setStudent(res.data.data);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      setLoading(false);
+    };
+    fetchProfile();
+  }, [profile]);
+
+  useEffect(() => {
+    if (!loading && !student) {
+      navigate('/student/setup');
+    }
+  }, [loading, student, navigate]);
+  
+  React.useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await api.get('/assessment-templates');
+        if (res.data.success) {
+          setTemplates(res.data.data);
+        }
+      } catch (err) {
+        setError('Failed to fetch assessments from the server.');
+      } finally {
+        setFetchingTemplates(false);
+      }
+    };
+    fetchTemplates();
+  }, []);
+
+  if (loading || !student) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  const startQuiz = (template) => {
+    setSelectedCategory(template.title);
+    setCurrentQuiz(template.questions);
     setQuizIndex(0);
     setSelectedAnswers({});
     setQuizResult(null);
@@ -137,7 +110,7 @@ const Assessment = () => {
     const formattedAnswers = currentQuiz.map((q, idx) => ({
       question: q.question,
       selectedOption: selectedAnswers[idx],
-      correctOption: q.correct
+      correctOption: q.correctOption
     }));
 
     try {
@@ -157,11 +130,9 @@ const Assessment = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 transition-colors duration-300">
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <Header title="Skill Assessment Terminal" />
-
-        <main className="flex-1 p-8 max-w-4xl mx-auto w-full space-y-8">
+    <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50 text-slate-900">
+      <Header title="Skill Assessments & Tasks" />
+      <PageShell maxWidth="max-w-7xl">
           
           {/* Main workspace */}
           {!selectedCategory ? (
@@ -172,17 +143,21 @@ const Assessment = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {Object.keys(categories).map((cat) => (
-                  <GlassCard key={cat} className="flex flex-col justify-between h-56 p-6 border hover:border-brand-500/30 transition-all duration-300">
+                {fetchingTemplates ? (
+                  <div className="col-span-3 text-center py-10 text-slate-500">Loading assessments...</div>
+                ) : templates.length === 0 ? (
+                  <div className="col-span-3 text-center py-10 text-slate-500">No custom assessments created by faculty yet.</div>
+                ) : templates.map((template) => (
+                  <GlassCard key={template._id} className="flex flex-col justify-between h-56 p-6 border hover:border-brand-500/30 transition-all duration-300">
                     <div>
                       <div className="p-3 bg-brand-500/10 text-brand-500 rounded-2xl w-fit mb-4">
                         <BookOpen size={24} />
                       </div>
-                      <h3 className="font-bold text-slate-800 dark:text-white text-base">{cat}</h3>
-                      <p className="text-xs text-slate-400 mt-2">5 Questions • 60 seconds per question recommended</p>
+                      <h3 className="font-bold text-slate-800 text-base">{template.title}</h3>
+                      <p className="text-xs text-slate-400 mt-2">{template.questions.length} Questions • {template.questions.length * 12} seconds recommended</p>
                     </div>
                     <button
-                      onClick={() => startQuiz(cat)}
+                      onClick={() => startQuiz(template)}
                       className="mt-6 flex items-center justify-between px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs transition-all w-full shadow-md shadow-brand-500/10"
                     >
                       <span>Launch Assessment</span>
@@ -227,7 +202,7 @@ const Assessment = () => {
                   Return to Categories
                 </button>
                 <button
-                  onClick={() => startQuiz(selectedCategory)}
+                  onClick={() => startQuiz(templates.find(t => t.title === selectedCategory))}
                   className="flex-1 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-lg shadow-brand-500/15 transition-all"
                 >
                   Retake Quiz
@@ -321,8 +296,7 @@ const Assessment = () => {
             </GlassCard>
           )}
 
-        </main>
-      </div>
+        </PageShell>
     </div>
   );
 };

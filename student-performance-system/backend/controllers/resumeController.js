@@ -6,7 +6,9 @@ const Student = require('../models/Student');
 // @access  Private (Student)
 exports.generateResumePDF = async (req, res) => {
   try {
-    const student = await Student.findOne({ email: req.user.email });
+    const student = await Student.findOne({ email: req.user.email })
+      .populate('department', 'name')
+      .populate('semester', 'name');
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student profile not found' });
     }
@@ -41,7 +43,7 @@ exports.generateResumePDF = async (req, res) => {
       .moveDown(0.4);
 
     doc
-      .text(`Department: ${student.department}  |  Current Semester: ${student.semester}`, { align: 'center' })
+      .text(`Department: ${student.department?.name || student.department || '—'}  |  Current Semester: ${student.semester?.name || student.semester || '—'}`, { align: 'center' })
       .moveDown(1.5);
 
     // Divider Line
@@ -79,7 +81,7 @@ exports.generateResumePDF = async (req, res) => {
 
     doc
       .font('Helvetica-Oblique')
-      .text(`${student.department} (Semester ${student.semester})`, { continued: true })
+      .text(`${student.department?.name || student.department || '—'} (${student.semester?.name || student.semester || '—'})`, { continued: true })
       .font('Helvetica')
       .text(` | Current CGPA: ${student.previousCGPA}/10.0`, { align: 'left' })
       .moveDown(1.2);

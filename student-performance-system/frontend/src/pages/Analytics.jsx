@@ -59,7 +59,11 @@ const Analytics = () => {
 
   const scopedStudents = useMemo(() => {
     if (semester === 'all') return students;
-    return students.filter((s) => String(s.semester) === semester);
+    // semester field is now a populated object with .number
+    return students.filter((s) => {
+      const semNum = s.semester?.number ?? s.semester;
+      return String(semNum) === semester;
+    });
   }, [semester, students]);
 
   const metrics = useMemo(() => {
@@ -110,7 +114,10 @@ const Analytics = () => {
     labels: semesters.map((sem) => `Sem ${sem}`),
     datasets: [{
       label: 'Active backlogs',
-      data: semesters.map((sem) => students.filter((s) => s.semester === sem).reduce((sum, s) => sum + Number(s.backlogs || 0), 0)),
+      data: semesters.map((sem) => students.filter((s) => {
+        const semNum = s.semester?.number ?? s.semester;
+        return semNum === sem;
+      }).reduce((sum, s) => sum + Number(s.backlogs || 0), 0)),
       backgroundColor: '#CBB89D',
       borderRadius: 10,
       maxBarThickness: 42

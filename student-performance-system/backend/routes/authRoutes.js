@@ -10,7 +10,8 @@ const {
   googleCallback,
   forgotPassword,
   resetPassword,
-  updatePassword
+  updatePassword,
+  updateProfile
 } = require('../controllers/authController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -28,6 +29,7 @@ router.delete('/faculty/:id', protect, authorize('admin'), deleteFaculty);
 router.post('/forgot-password', forgotPassword);                  // Quick Win #4
 router.put('/reset-password', resetPassword);                     // Quick Win #4
 router.put('/update-password', protect, updatePassword);
+router.put('/update-profile', protect, updateProfile);
 
 // ── Google OAuth 2.0 ───────────────────────────────────────────────────────
 // Step 1: Redirect user to Google consent screen

@@ -5,6 +5,7 @@ const fs = require('fs');
 const {
   getStudents,
   getStudent,
+  setupProfile,
   createStudent,
   updateStudent,
   deleteStudent,
@@ -13,7 +14,8 @@ const {
   flagStudent,
   addMilestone,
   toggleMilestone,
-  deleteMilestone
+  deleteMilestone,
+  updateMyMetrics
 } = require('../controllers/studentController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -55,8 +57,17 @@ router
   .post(authorize('admin'), createStudent);
 
 router
+  .route('/setup')
+  .post(authorize('student'), setupProfile);
+
+router
   .route('/import')
   .post(authorize('admin'), upload.single('file'), importStudents);
+
+router
+  .route('/my-metrics')
+  .put(authorize('student'), updateMyMetrics);
+
 
 router
   .route('/:id')
