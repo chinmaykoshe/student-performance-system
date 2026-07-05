@@ -32,7 +32,30 @@ exports.getContacts = async (req, res) => {
       unreadCountMap[senderId] = (unreadCountMap[senderId] || 0) + 1;
     });
 
-    const contacts = await Promise.all(users.map(async u => {
+    // Fetch all messages involving the current user in a single database query
+    const allMessages = await DirectMessage.find({
+      $or: [
+        { sender: currentUserId },
+        { receiver: currentUserId }
+      ]
+    }).sort({ createdAt: -1 }).select('sender receiver content createdAt');
+
+    // Build a map of the last message for each user to avoid N+1 queries
+    const lastMessageMap = {};
+    allMessages.forEach(msg => {
+      const sId = msg.sender.toString();
+      const rId = msg.receiver.toString();
+      const otherUserId = sId === currentUserId.toString() ? rId : sId;
+
+      if (!lastMessageMap[otherUserId]) {
+        lastMessageMap[otherUserId] = {
+          content: msg.content,
+          createdAt: msg.createdAt
+        };
+      }
+    });
+
+    const contacts = users.map(u => {
       const userObj = u.toObject();
       const uIdStr = userObj._id.toString();
       
@@ -45,14 +68,8 @@ exports.getContacts = async (req, res) => {
       // Add unread count
       userObj.unreadCount = unreadCountMap[uIdStr] || 0;
 
-      // Add last message preview
-      const lastMsg = await DirectMessage.findOne({
-        $or: [
-          { sender: currentUserId, receiver: u._id },
-          { sender: u._id, receiver: currentUserId }
-        ]
-      }).sort({ createdAt: -1 }).select('content createdAt');
-
+      // Add last message preview from our map
+      const lastMsg = lastMessageMap[uIdStr];
       userObj.lastMessage = lastMsg ? lastMsg.content : '';
       userObj.lastMessageTime = lastMsg ? lastMsg.createdAt : null;
 
@@ -60,7 +77,7 @@ exports.getContacts = async (req, res) => {
       delete userObj.blockedUsers;
       
       return userObj;
-    }));
+    });
 
     // Sort: contacts with last message first, then alphabetical
     contacts.sort((a, b) => {

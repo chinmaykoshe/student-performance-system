@@ -58,7 +58,7 @@ const AdminFacultyAllocation = () => {
     const selectedSubjects = Array.from(allocations[facultyId] || []);
     setSaving(facultyId);
     try {
-      const res = await api.post('/academic/faculty-allocation/assign', {
+      const res = await api.post('/academic/faculty-allocation', {
         facultyId,
         subjectIds: selectedSubjects
       });

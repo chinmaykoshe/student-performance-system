@@ -153,8 +153,24 @@ const AICopilot = () => {
       return;
     }
 
-    // Default simulated response
-    setTimeout(() => {
+    // Call the actual backend chat API
+    try {
+      // Pass conversation history (excluding the user message we just added)
+      const chatHistory = messages.map(m => ({ sender: m.sender, text: m.text }));
+      
+      const res = await api.post('/ai/chat', { 
+        message: text,
+        history: chatHistory
+      });
+      
+      if (res.data.success) {
+        setMessages(prev => [...prev, { sender: 'bot', text: res.data.text }]);
+      } else {
+        setMessages(prev => [...prev, { sender: 'bot', text: "Sorry, I couldn't reach the AI service right now." }]);
+      }
+    } catch (err) {
+      console.error('AICopilot API error:', err);
+      // Fallback answers in case of offline/timeout
       let reply = "I'm processing your query regarding performance metrics. Please consult the API documentation or edit student details to re-run predictions.";
 
       if (query.includes("explain_model") || query.includes("how does") || query.includes("random forest")) {
@@ -166,10 +182,10 @@ const AICopilot = () => {
       } else if (query.includes("hello") || query.includes("hi")) {
         reply = "Hello! How can I assist you with your academic analytics today?";
       }
-
       setMessages(prev => [...prev, { sender: 'bot', text: reply }]);
+    } finally {
       setTyping(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -202,7 +218,7 @@ const AICopilot = () => {
               </div>
               <div>
                 <h4 className="font-bold text-sm">PredictEdu Copilot</h4>
-                <p className="text-[10px] text-brand-100 font-semibold">AI Assistant Offline Fallback Mode</p>
+                <p className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider">Online</p>
               </div>
             </div>
             <button
@@ -230,8 +246,8 @@ const AICopilot = () => {
                 
                 <div className={`p-3 rounded-2xl text-xs leading-relaxed max-w-[75%] ${
                   msg.sender === 'bot'
-                    ? 'bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-800/40 shadow-sm'
-                    : 'bg-brand-500 text-white shadow-md shadow-brand-500/10'
+                    ? 'bg-slate-100 text-slate-800 border border-slate-200/60 shadow-sm'
+                    : 'bg-brand-600 text-white shadow-md shadow-brand-600/10'
                 }`}>
                   {msg.text}
                 </div>

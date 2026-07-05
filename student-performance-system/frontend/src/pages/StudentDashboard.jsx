@@ -18,6 +18,15 @@ const StudentDashboard = () => {
   // Roadmap milestone states
   const [newMilestone, setNewMilestone] = useState('');
   const [addingMilestone, setAddingMilestone] = useState(false);
+  
+  // Report Card state
+  const [selectedSemester, setSelectedSemester] = useState(1);
+
+  useEffect(() => {
+    if (student && student.semester && student.semester.number) {
+      setSelectedSemester(student.semester.number);
+    }
+  }, [student]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -50,14 +59,27 @@ const StudentDashboard = () => {
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await api.get(`/report/pdf/${student._id}`, { responseType: 'blob' });
+      const response = await api.get(`/report/pdf/${student._id}?semester=${selectedSemester}`, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const link = document.createElement('a');
       link.href = window.URL.createObjectURL(blob);
       link.download = `Report_Card_${student.rollNumber}.pdf`;
       link.click();
     } catch (err) {
-      alert('Error downloading report card.');
+      if (err.response && err.response.data instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const errObj = JSON.parse(reader.result);
+            alert(errObj.error || 'Error downloading report card.');
+          } catch (e) {
+            alert('Error downloading report card.');
+          }
+        };
+        reader.readAsText(err.response.data);
+      } else {
+        alert(err.response?.data?.error || 'Error downloading report card.');
+      }
     }
   };
 
@@ -147,9 +169,18 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="relative z-10 flex gap-3">
+          <div className="relative z-10 flex items-center gap-3 bg-white/10 p-2 rounded-2xl backdrop-blur-sm border border-white/10">
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="bg-slate-800 text-white border border-slate-700 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-brand-500 transition-colors"
+            >
+              {Array.from({ length: student.semester?.number || 1 }, (_, i) => i + 1).map(sem => (
+                <option key={sem} value={sem}>Semester {sem}</option>
+              ))}
+            </select>
             <button onClick={handleDownloadPDF} className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-400 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-500/20">
-              <Download size={18} /> Report Card
+              <Download size={18} /> Download
             </button>
           </div>
         </div>

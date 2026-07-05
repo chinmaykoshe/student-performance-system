@@ -91,10 +91,13 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      console.log(`[LOGIN FAILED] User not found for email: ${email}`);
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     const isMatch = await user.matchPassword(password);
+    console.log(`[LOGIN MATCH CHECK] Email: ${email} | Input Pass: "${password}" | DB Pass: "${user.password}" | Match: ${isMatch}`);
+    
     if (!isMatch) {
       return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }

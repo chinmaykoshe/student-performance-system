@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Student = require('../models/Student');
 const Subject = require('../models/Subject');
 const AttendanceRecord = require('../models/AttendanceRecord');
@@ -35,7 +36,8 @@ exports.getStudentsBySubject = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Not authorized to view students for this subject.' });
     }
 
-    const students = await Student.find({ enrolledSubjects: subjectId })
+    const mongoose = require('mongoose');
+    const students = await Student.find({ enrolledSubjects: new mongoose.Types.ObjectId(subjectId) })
       .populate('course', 'name code')
       .populate('semester', 'name number')
       .sort('rollNumber');

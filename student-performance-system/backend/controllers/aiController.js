@@ -1,6 +1,9 @@
 const axios = require('axios');
 const Student = require('../models/Student');
 const SkillAssessment = require('../models/SkillAssessment');
+const Subject = require('../models/Subject');
+const Course = require('../models/Course');
+const Department = require('../models/Department');
 const { canUseTokens, recordUsage, getUsage } = require('../utils/tokenTracker');
 
 // ─── Gemini API helper ────────────────────────────────────────────────────────
@@ -303,5 +306,94 @@ The JSON must be an array of objects. Each object must have the exact following 
     res.status(200).json({ success: true, data: questions, tokensUsed: aiResponse.tokensUsed });
   } catch (err) {
     res.status(500).json({ success: false, error: 'Failed to generate assessment. Please try again or refine the topic.' });
+  }
+};
+
+// @desc    General Copilot Chat (Gemini Integration)
+// @route   POST /api/ai/chat
+// @access  Private
+exports.copilotChat = async (req, res) => {
+  const userId = req.user._id.toString();
+  const { message, history } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ success: false, error: 'Please provide a message.' });
+  }
+
+  const check = canUseTokens(userId);
+  const usage = getUsage(userId);
+  if (!check.allowed) return limitDenied(res, check, usage);
+
+  let studentCount = 0, subjectCount = 0, courseCount = 0, deptCount = 0;
+  try {
+    // Fetch live system stats to give Gemini contextual awareness of the database
+    studentCount = await Student.countDocuments({});
+    subjectCount = await Subject.countDocuments({});
+    courseCount = await Course.countDocuments({});
+    deptCount = await Department.countDocuments({});
+
+    // Format conversation history for the prompt
+    let conversationContext = '';
+    if (history && Array.isArray(history)) {
+      conversationContext = history.map(msg => 
+        `${msg.sender === 'user' ? 'User' : 'Copilot'}: ${msg.text}`
+      ).join('\n') + '\n';
+    }
+
+    const systemPrompt = `You are PredictEdu Copilot, a highly intelligent and helpful AI academic assistant.
+Your goal is to answer questions for students, faculty, or administrators using this Student Performance Prediction System.
+Answer any questions directly, including academic questions, coding help, scheduling, general explanations, or system queries.
+Keep your response formatting clean and readable using standard markdown.
+
+Live System Database Context:
+- Total Registered Students: ${studentCount}
+- Total Academic Subjects: ${subjectCount}
+- Total Active Courses: ${courseCount}
+- Total Departments: ${deptCount}
+
+User Role: ${req.user.role}
+User Name: ${req.user.name}
+
+Conversation History:
+${conversationContext}
+User: ${message}
+Copilot:`;
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY_HERE') {
+      return res.status(200).json({ 
+        success: true, 
+        text: `I am running in offline mode because the Gemini API Key is not configured. However, I can read the system database. We currently have ${subjectCount} subjects, ${studentCount} students, and ${courseCount} courses registered in the database.`
+      });
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const payload = {
+      contents: [{ parts: [{ text: systemPrompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1000
+      }
+    };
+
+    const response = await axios.post(url, payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 15000
+    });
+
+    const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response from AI.';
+    const tokensUsed = response.data?.usageMetadata?.totalTokenCount || 0;
+
+    recordUsage(userId, tokensUsed);
+
+    res.status(200).json({ success: true, text });
+  } catch (error) {
+    console.error('Copilot Chat Error:', error.response?.data || error.message);
+    
+    // Return a graceful 200 OK fallback if Gemini API is unreachable or key is invalid
+    res.status(200).json({ 
+      success: true, 
+      text: `I am currently running in database-only fallback mode. We have ${subjectCount} subjects, ${studentCount} students, and ${courseCount} courses registered in our database. How can I help you with these records?`
+    });
   }
 };

@@ -16,11 +16,29 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 const NO_CACHE_PATTERNS = ['/messages', '/auth/me', '/unread-count'];
 const shouldCache = (url) => !NO_CACHE_PATTERNS.some(p => url.includes(p));
 
+// Helper to generate a unique cache key incorporating query parameters
+const getCacheKey = (url, config) => {
+  if (!config || !config.params) return url;
+  try {
+    // Stringify and sort query parameters to ensure consistency
+    const sortedParams = Object.keys(config.params)
+      .sort()
+      .reduce((acc, key) => {
+        acc[key] = config.params[key];
+        return acc;
+      }, {});
+    return `${url}?${new URLSearchParams(sortedParams).toString()}`;
+  } catch (e) {
+    return url;
+  }
+};
+
 const originalGet = api.get;
 api.get = async (url, config = {}) => {
+  const cacheKey = getCacheKey(url, config);
   // Use cached data if available and valid (skip for real-time routes)
-  if (!config.forceRefresh && shouldCache(url) && apiCache.has(url)) {
-    const cached = apiCache.get(url);
+  if (!config.forceRefresh && shouldCache(url) && apiCache.has(cacheKey)) {
+    const cached = apiCache.get(cacheKey);
     if (Date.now() - cached.timestamp < CACHE_DURATION) {
       return { data: cached.data, status: 200, statusText: 'OK', headers: {}, config };
     }
@@ -29,7 +47,7 @@ api.get = async (url, config = {}) => {
   const response = await originalGet.call(api, url, config);
   // Persist response to cache (skip for real-time routes)
   if (shouldCache(url)) {
-    apiCache.set(url, { data: response.data, timestamp: Date.now() });
+    apiCache.set(cacheKey, { data: response.data, timestamp: Date.now() });
   }
   return response;
 };
