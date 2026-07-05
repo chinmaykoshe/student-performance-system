@@ -5,6 +5,7 @@ const fs = require('fs');
 const {
   getStudents,
   getStudent,
+  setupProfile,
   createStudent,
   updateStudent,
   deleteStudent,
@@ -54,6 +55,10 @@ router
   .route('/')
   .get(authorize('admin', 'faculty'), getStudents)
   .post(authorize('admin'), createStudent);
+
+router
+  .route('/setup')
+  .post(authorize('student'), setupProfile);
 
 router
   .route('/import')

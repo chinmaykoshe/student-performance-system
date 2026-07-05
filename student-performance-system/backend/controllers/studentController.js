@@ -278,6 +278,78 @@ exports.createStudent = async (req, res) => {
   }
 };
 
+// @desc    Self-setup student profile (for newly registered / OAuth students)
+// @route   POST /api/students/setup
+// @access  Private (Student)
+exports.setupProfile = async (req, res) => {
+  try {
+    if (req.user.role !== 'student') {
+      return res.status(403).json({ success: false, error: 'Only students can set up their profile' });
+    }
+
+    const {
+      rollNumber,
+      department,
+      course,
+      academicYear,
+      semester,
+      division,
+      attendancePercentage,
+      assignmentMarks,
+      internalMarks,
+      previousCGPA,
+      studyHours,
+      backlogs
+    } = req.body;
+
+    const email = req.user.email;
+    const name = req.user.name || 'Student';
+
+    let existingProfile = await Student.findOne({ email });
+    if (existingProfile) {
+      return res.status(400).json({ success: false, error: 'Student profile already exists for this account' });
+    }
+
+    let existingRoll = await Student.findOne({ rollNumber: rollNumber.toUpperCase() });
+    if (existingRoll) {
+      return res.status(400).json({ success: false, error: 'Student with this roll number already exists' });
+    }
+
+    const student = await Student.create({
+      rollNumber,
+      name,
+      email,
+      department,
+      course,
+      academicYear,
+      semester,
+      division: division || 'A',
+      enrolledSubjects: [],
+      attendancePercentage: attendancePercentage || 0,
+      assignmentMarks: assignmentMarks || 0,
+      internalMarks: internalMarks || 0,
+      previousCGPA: previousCGPA || 0,
+      studyHours: studyHours || 0,
+      backlogs: backlogs || 0
+    });
+
+    const predictionResult = await predictStudentPerformance(student);
+    student.prediction = {
+      result: predictionResult.result,
+      confidence: predictionResult.confidence,
+      suggestions: predictionResult.suggestions,
+      predictedAt: new Date()
+    };
+    await student.save();
+
+    createLog('STUDENT_SETUP', req.user.email, `Student completed their own profile setup (${student.rollNumber})`);
+
+    res.status(201).json({ success: true, data: student });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 // @desc    Update student
 // @route   PUT /api/students/:id
 // @access  Private (Admin, Faculty)

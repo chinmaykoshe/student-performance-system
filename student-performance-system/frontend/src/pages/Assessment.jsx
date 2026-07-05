@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { api } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth, api } from '../context/AuthContext';
 import Header from '../components/Header';
 import GlassCard from '../components/GlassCard';
 import { PageShell } from '../components/AdminUI';
@@ -8,6 +9,11 @@ import { BookOpen, AlertTriangle, CheckCircle, ArrowRight, Award, RefreshCw, Bar
 // Dynamic categories from backend will be used instead of static data
 
 const Assessment = () => {
+  const { profile } = useAuth();
+  const navigate = useNavigate();
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [currentQuiz, setCurrentQuiz] = useState([]);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -18,6 +24,27 @@ const Assessment = () => {
 
   const [templates, setTemplates] = useState([]);
   const [fetchingTemplates, setFetchingTemplates] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (profile?._id) {
+        try {
+          const res = await api.get(`/students/${profile._id}`);
+          setStudent(res.data.data);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      setLoading(false);
+    };
+    fetchProfile();
+  }, [profile]);
+
+  useEffect(() => {
+    if (!loading && !student) {
+      navigate('/student/setup');
+    }
+  }, [loading, student, navigate]);
   
   React.useEffect(() => {
     const fetchTemplates = async () => {
@@ -34,6 +61,14 @@ const Assessment = () => {
     };
     fetchTemplates();
   }, []);
+
+  if (loading || !student) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
+      </div>
+    );
+  }
 
   const startQuiz = (template) => {
     setSelectedCategory(template.title);

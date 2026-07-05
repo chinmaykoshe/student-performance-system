@@ -34,7 +34,7 @@ const Messages = () => {
   // Fetch contacts on mount and periodically
   useEffect(() => {
     fetchContacts();
-    const interval = setInterval(fetchContacts, 7000);
+    const interval = setInterval(fetchContacts, 15000);
     return () => clearInterval(interval);
   }, [selectedContact]);
 
@@ -56,10 +56,10 @@ const Messages = () => {
     setLoading(true);
     fetchMessages().finally(() => setLoading(false));
     
-    // Poll for new messages every 4 seconds
-    const interval = setInterval(fetchMessages, 4000);
+    // Poll for new messages every 15 seconds
+    const interval = setInterval(fetchMessages, 15000);
     return () => clearInterval(interval);
-  }, [selectedContact]);
+  }, [selectedContact?._id]);
 
   // Auto-scroll to bottom of chat
   useEffect(() => {

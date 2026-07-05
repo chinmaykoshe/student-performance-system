@@ -11,54 +11,52 @@ const {
   getFacultyAllocation, assignSubjectsToFaculty
 } = require('../controllers/academicController');
 
-// All academic setup routes are protected and admin-only
+// All academic setup routes are protected
 router.use(protect);
-router.use(authorize('admin'));
 
 // Departments
 router.route('/departments')
-  .get(getDepartments)
-  .post(createDepartment);
+  .get(authorize('admin', 'faculty', 'student'), getDepartments)
+  .post(authorize('admin'), createDepartment);
 router.route('/departments/:id')
-  .put(updateDepartment)
-  .delete(deleteDepartment);
+  .put(authorize('admin'), updateDepartment)
+  .delete(authorize('admin'), deleteDepartment);
 
 // Courses
 router.route('/courses')
-  .get(getCourses)
-  .post(createCourse);
+  .get(authorize('admin', 'faculty', 'student'), getCourses)
+  .post(authorize('admin'), createCourse);
 router.route('/courses/:id')
-  .put(updateCourse)
-  .delete(deleteCourse);
+  .put(authorize('admin'), updateCourse)
+  .delete(authorize('admin'), deleteCourse);
 
 // Subjects
 router.route('/subjects')
-  .get(getSubjects)
-  .post(createSubject);
+  .get(authorize('admin', 'faculty', 'student'), getSubjects)
+  .post(authorize('admin'), createSubject);
 router.route('/subjects/:id')
-  .put(updateSubject)
-  .delete(deleteSubject);
+  .put(authorize('admin'), updateSubject)
+  .delete(authorize('admin'), deleteSubject);
 
 // Academic Years
 router.route('/years')
-  .get(getAcademicYears)
-  .post(createAcademicYear);
+  .get(authorize('admin', 'faculty', 'student'), getAcademicYears)
+  .post(authorize('admin'), createAcademicYear);
 router.route('/years/:id')
-  .put(updateAcademicYear)
-  .delete(deleteAcademicYear);
+  .put(authorize('admin'), updateAcademicYear)
+  .delete(authorize('admin'), deleteAcademicYear);
 
 // Semesters
 router.route('/semesters')
-  .get(getSemesters)
-  .post(createSemester);
+  .get(authorize('admin', 'faculty', 'student'), getSemesters)
+  .post(authorize('admin'), createSemester);
 router.route('/semesters/:id')
-  .put(updateSemester)
-  .delete(deleteSemester);
+  .put(authorize('admin'), updateSemester)
+  .delete(authorize('admin'), deleteSemester);
 
 // Faculty Allocation
 router.route('/faculty-allocation')
-  .get(getFacultyAllocation);
-router.route('/faculty-allocation/assign')
-  .post(assignSubjectsToFaculty);
+  .get(authorize('admin', 'faculty'), getFacultyAllocation)
+  .post(authorize('admin'), assignSubjectsToFaculty);
 
 module.exports = router;

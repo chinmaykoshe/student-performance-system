@@ -64,7 +64,7 @@ exports.getCareerCounsel = async (req, res) => {
   if (!check.allowed) return limitDenied(res, check, usage);
 
   try {
-    const student = await Student.findOne({ email: req.user.email });
+    const student = await Student.findOne({ email: req.user.email }).populate('department');
     if (!student) {
       return res.status(404).json({ success: false, error: 'Student profile not found' });
     }
@@ -74,7 +74,7 @@ exports.getCareerCounsel = async (req, res) => {
 
     // Compact prompt — minimal tokens, structured output only
     const prompt = `You are an academic career counselor. Respond ONLY in raw JSON (no markdown, no extra text).
-Student: ${student.department}, Semester ${student.semester}, CGPA ${student.previousCGPA}/10, Skills: ${assessmentDetails}, Status: ${student.prediction?.result || 'N/A'}.
+Student: ${student.department?.name || 'Computer Science'}, Semester ${student.semester}, CGPA ${student.previousCGPA}/10, Skills: ${assessmentDetails}, Status: ${student.prediction?.result || 'N/A'}.
 Return exactly:
 {"strengths":["<2 key strengths>"],"gaps":["<2 key gaps>"],"careerPaths":[{"role":"<role>","match":"<pct>%","reason":"<1 sentence>"},{"role":"<role>","match":"<pct>%","reason":"<1 sentence>"}],"roadmapSteps":["<step1>","<step2>","<step3>"]}`;
 
@@ -94,6 +94,8 @@ Return exactly:
       const avgScore   = assessments.length > 0
         ? assessments.reduce((s, a) => s + a.score, 0) / assessments.length
         : 50;
+      
+      const deptName = student.department?.name || '';
 
       guidanceJson = {
         strengths: [
@@ -107,7 +109,7 @@ Return exactly:
           avgScore < 70 ? 'Improve programming proficiency scores' : 'Deeper command over design patterns'
         ],
         careerPaths: [
-          { role: student.department.includes('MCA') ? 'Full-Stack Developer' : 'Software Engineer', match: avgScore >= 80 ? '92%' : '78%', reason: 'Matches department profile and academic performance.' },
+          { role: deptName.includes('MCA') ? 'Full-Stack Developer' : 'Software Engineer', match: avgScore >= 80 ? '92%' : '78%', reason: 'Matches department profile and academic performance.' },
           { role: 'Cloud Architect / DevOps Engineer', match: isGoodCgpa ? '85%' : '70%', reason: 'Good foundation in system configurations and frameworks.' }
         ],
         roadmapSteps: [

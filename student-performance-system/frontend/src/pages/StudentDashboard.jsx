@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
 import Header from '../components/Header';
 import { PageShell } from '../components/AdminUI';
@@ -10,6 +11,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, C
 
 const StudentDashboard = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -32,20 +34,16 @@ const StudentDashboard = () => {
     fetchProfile();
   }, [profile]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && !student) {
+      navigate('/student/setup');
+    }
+  }, [loading, student, navigate]);
+
+  if (loading || !student) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent"></div>
-      </div>
-    );
-  }
-
-  if (!student) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-50">
-        <AlertTriangle size={48} className="text-slate-400 mb-4" />
-        <h2 className="text-xl font-bold text-slate-700">Profile Not Found</h2>
-        <p className="text-slate-500 mt-2">Could not load academic data.</p>
       </div>
     );
   }

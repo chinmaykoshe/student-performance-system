@@ -195,20 +195,6 @@ const Login = () => {
                 </svg>
                 <span>Continue with Google</span>
               </a>
-
-              {/* Helpful footer */}
-              <div className="mt-8 flex justify-center space-x-6 text-xs text-slate-500 font-medium">
-                <div className="flex flex-col items-center">
-                  <span className="text-white">admin@system.com</span>
-                  <span>Pass: admin</span>
-                </div>
-                <div className="w-px h-8 bg-white/10"></div>
-                <div className="flex flex-col items-center">
-                  <span className="text-white">faculty@system.com</span>
-                  <span>Pass: faculty</span>
-                </div>
-              </div>
-
             </div>
           </div>
         </div>

@@ -27,6 +27,7 @@ import AuditLogs from './pages/AuditLogs';
 import Settings from './pages/Settings';
 import { AdminCalendar, AdminMessages, AdminProjects, AdminTasks, AdminTeam } from './pages/AdminWorkspaces';
 import AICopilot from './components/AICopilot';
+import StudentOnboarding from './pages/StudentOnboarding';
 
 import AdminAcademicSetup from './pages/AdminAcademicSetup';
 import AdminDepartments from './pages/AdminDepartments';
@@ -316,6 +317,11 @@ function App() {
           />
 
           {/* ── Student Protected Routes ─────────────────────────────── */}
+          <Route path="/student/setup" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <StudentOnboarding />
+            </ProtectedRoute>
+          } />
           <Route
             path="/student"
             element={
